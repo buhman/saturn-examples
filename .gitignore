@@ -1,0 +1,7 @@
+*.gch
+*.o
+*.elf
+*.bin
+*.iso
+*.ppm
+*.png
