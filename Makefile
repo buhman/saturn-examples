@@ -1,5 +1,6 @@
 CFLAGS = -Isaturn -Imath
-OPT = -O3
+OPT = -O1
+
 LIBGCC = $(shell $(CC) -print-file-name=libgcc.a)
 
 all: raytracing.iso

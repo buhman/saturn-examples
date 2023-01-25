@@ -100,44 +100,7 @@ struct t1_t2 {
   fp16_16 t2;
 };
 
-fp16_16 compute_lighting(const vec3& point, const vec3& normal,
-                         const vec3& viewer, fp16_16 specular)
-{
-  fp16_16 intensity{0};
-
-  for (int i = 0; i < 3; i++) {
-    const light& light = scene.lights[i];
-    if (light.type == light_type::ambient) {
-      intensity += light.intensity;
-    } else {
-      vec3 light_vector;
-      if (light.type == light_type::point) {
-        light_vector = light.position - point;
-      } else {
-        light_vector = light.direction;
-      }
-
-      // diffuse
-      auto n_dot_l = dot(normal, light_vector);
-      if (n_dot_l > fp16_16(0)) {
-        intensity += light.intensity * n_dot_l * (fp16_16(1) / length(light_vector));
-      }
-
-      // specular
-      if (specular > fp16_16(0)) {
-        auto reflected = normal * fp16_16(2) * dot(normal, light_vector) - light_vector;
-        auto r_dot_v = dot(reflected, viewer);
-        if (r_dot_v > fp16_16(0)) {
-          auto base = r_dot_v / (length(reflected) * length(viewer));
-          intensity += light.intensity * pow(base, specular);
-        }
-      }
-    }
-  }
-  return intensity;
-}
-
-t1_t2 intersect_ray_sphere(const vec3& origin, const vec3& direction, const sphere& sphere)
+inline t1_t2 intersect_ray_sphere(const vec3& origin, const vec3& direction, const sphere& sphere)
 {
   fp16_16 r = sphere.radius;
   vec3 CO = origin - sphere.center;
@@ -159,7 +122,12 @@ t1_t2 intersect_ray_sphere(const vec3& origin, const vec3& direction, const sphe
   }
 }
 
-static vec3 trace_ray
+struct t_sphere {
+  fp16_16 closest_t;
+  const sphere * closest_sphere;
+};
+
+inline t_sphere closest_intersection
 (
   const vec3& origin,
   const vec3& direction,
@@ -169,6 +137,7 @@ static vec3 trace_ray
 {
   fp16_16 closest_t = fp_limits<fp16_16>::max();
   const sphere * closest_sphere = nullptr;
+
   for (int i = 0; i < 4; i++) {
     auto& sphere = scene.spheres[i];
     auto [t1, t2] = intersect_ray_sphere(origin, direction, sphere);
@@ -181,6 +150,64 @@ static vec3 trace_ray
       closest_sphere = &sphere;
     }
   }
+
+  return {closest_t, closest_sphere};
+}
+
+fp16_16 compute_lighting(const vec3& point, const vec3& normal,
+                         const vec3& viewer, fp16_16 specular)
+{
+  fp16_16 intensity{0};
+
+  for (int i = 0; i < 3; i++) {
+    const light& light = scene.lights[i];
+    if (light.type == light_type::ambient) {
+      intensity += light.intensity;
+    } else {
+      vec3 light_vector;
+      fp16_16 t_max(0);
+      if (light.type == light_type::point) {
+        light_vector = light.position - point;
+        t_max = fp16_16(1);
+      } else {
+        light_vector = light.direction;
+        t_max = fp_limits<fp16_16>::max();
+      }
+
+      constexpr fp16_16 t_min = fp16_16(128, fp_raw_tag{});
+      auto [shadow_t, shadow_sphere] = closest_intersection(point, light_vector, t_min, t_max);
+      if (shadow_sphere != nullptr)
+        continue;
+
+      // diffuse
+      auto n_dot_l = dot(normal, light_vector);
+      if (n_dot_l > fp16_16(0)) {
+        intensity += light.intensity * n_dot_l * (fp16_16(1) / length(light_vector));
+      }
+
+      // specular
+      if (specular > fp16_16(0)) {
+        auto reflected = normal * fp16_16(2) * dot(normal, light_vector) - light_vector;
+        auto r_dot_v = dot(reflected, viewer);
+        if (r_dot_v > fp16_16(0)) {
+          auto base = r_dot_v / (length(reflected) * length(viewer));
+          intensity += light.intensity * pow(base, specular);
+        }
+      }
+    }
+  }
+  return intensity;
+}
+
+static vec3 trace_ray
+(
+  const vec3& origin,
+  const vec3& direction,
+  const fp16_16 t_min,
+  const fp16_16 t_max
+)
+{
+  auto [closest_t, closest_sphere] = closest_intersection(origin, direction, t_min, t_max);
   if (closest_sphere == nullptr) {
     return vec3(0, 0, 0);
   } else {

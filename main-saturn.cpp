@@ -8,6 +8,7 @@
 #include "fp.hpp"
 #include "raytracing.hpp"
 
+constexpr inline
 fp16_16 clamp(fp16_16 const& n)
 {
   return (n > fp16_16(1) ? fp16_16(1) : (n < fp16_16(0) ? fp16_16(0) : n));
