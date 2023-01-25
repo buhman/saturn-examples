@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "div.hpp"
 
 struct fp_raw_tag {};
 
@@ -21,7 +22,34 @@ struct fp
   {
     return fp(-value, fp_raw_tag{});
   }
+
+  inline constexpr fp<T, I, B>& operator=(fp<T, I, B> const& v);
+
+  inline constexpr fp<T, I, B>& operator+=(fp<T, I, B> const& v);
+
+  inline constexpr fp<T, I, B>& operator-=(fp<T, I, B> const& v);
 };
+
+template <typename T, typename I, int B>
+inline constexpr fp<T, I, B>& fp<T, I, B>::operator=(fp<T, I, B> const& v)
+{
+  this->value = v.value;
+  return *this;
+}
+
+template <typename T, typename I, int B>
+inline constexpr fp<T, I, B>& fp<T, I, B>::operator+=(fp<T, I, B> const& v)
+{
+  *this = *this + v;
+  return *this;
+}
+
+template <typename T, typename I, int B>
+inline constexpr fp<T, I, B>& fp<T, I, B>::operator-=(fp<T, I, B> const& v)
+{
+  *this = *this - v;
+  return *this;
+}
 
 template <typename T, typename I, int B>
 constexpr inline fp<T, I, B> operator+(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
@@ -59,7 +87,10 @@ constexpr inline fp<T, I, B> operator*(T b, const fp<T, I, B>& a) noexcept
 template <typename T, typename I, int B>
 constexpr inline fp<T, I, B> operator/(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
 {
-  I p = (static_cast<I>(a.value) * (static_cast<I>(1) << B)) / static_cast<I>(b.value);
+  //T p = (static_cast<T>(a.value) * ) / static_cast<T>(b.value);
+  //T p = static_cast<T>(a.value) / static_cast<T>(b.value);
+  I p = __div64_32((static_cast<I>(a.value) << 16), static_cast<T>(b.value));
+
   return fp<T, I, B>(static_cast<T>(p), fp_raw_tag{});
 }
 

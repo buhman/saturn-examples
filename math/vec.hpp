@@ -25,14 +25,11 @@ struct vec<3, T>
 
   inline constexpr T const& operator[](int i) const;
 
-  template<typename U>
-  inline constexpr vec<3, T>& operator=(vec<3, U> const& v);
+  inline constexpr vec<3, T>& operator=(vec<3, T> const& v);
 
-  template<typename U>
-  inline constexpr vec<3, T>& operator+=(vec<3, U> const& v);
+  inline constexpr vec<3, T>& operator+=(vec<3, T> const& v);
 
-  template<typename U>
-  inline constexpr vec<3, T>& operator-=(vec<3, U> const& v);
+  inline constexpr vec<3, T>& operator-=(vec<3, T> const& v);
 };
 
 template <typename T>
@@ -66,8 +63,7 @@ inline constexpr T const& vec<3, T>::operator[](int i) const
 }
 
 template<typename T>
-template<typename U>
-inline constexpr vec<3, T>& vec<3, T>::operator=(vec<3, U> const& v)
+inline constexpr vec<3, T>& vec<3, T>::operator=(vec<3, T> const& v)
 {
   this->x = static_cast<T>(v.x);
   this->y = static_cast<T>(v.y);
@@ -76,16 +72,14 @@ inline constexpr vec<3, T>& vec<3, T>::operator=(vec<3, U> const& v)
 }
 
 template<typename T>
-template<typename U>
-inline constexpr vec<3, T>& vec<3, T>::operator+=(vec<3, U> const& v)
+inline constexpr vec<3, T>& vec<3, T>::operator+=(vec<3, T> const& v)
 {
   *this = *this + vec<3, T>(v);
   return *this;
 }
 
 template<typename T>
-template<typename U>
-inline constexpr vec<3, T>& vec<3, T>::operator-=(vec<3, U> const& v)
+inline constexpr vec<3, T>& vec<3, T>::operator-=(vec<3, T> const& v)
 {
   *this = *this + vec<3, T>(v);
   return *this;
@@ -115,11 +109,29 @@ inline constexpr vec<3, T> operator*(vec<3, T> const& v1, vec<3, T> const& v2)
                    v1.z * v2.z);
 }
 
+/*
+template <typename T>
+inline constexpr vec<3, T> operator/(vec<3, T> const& v1, vec<3, T> const& v2)
+{
+  return vec<3, T>(v1.x / v2.x,
+                   v1.y / v2.y,
+                   v1.z / v2.z);
+}
+*/
+
 template <typename T>
 inline constexpr vec<3, T> operator*(vec<3, T> const& v1, T const& scalar)
 {
   return v1 * vec<3, T>(scalar);
 }
+
+/*
+template <typename T>
+inline constexpr vec<3, T> operator/(vec<3, T> const& v1, T const& scalar)
+{
+  return v1 / vec<3, T>(scalar);
+}
+*/
 
 template <typename T>
 inline constexpr T dot(vec<3, T> const& v1, vec<3, T> const& v2)

@@ -31,15 +31,15 @@ void put_pixel(int32_t x, int32_t y, const vec3& color)
     return;
   }
 
-  vec3 px255 = functor1(clamp, color) * fp16_16(255);
-  frame[sy][sx] = functor1(to_uint8_t, px255);
+  vec3 px31 = functor1(clamp, color) * fp16_16(31);
+  frame[sy][sx] = functor1(to_uint8_t, px31);
 }
 
 void render_ppm(ostream& out)
 {
   using namespace canvas;
 
-  out << "P3 " << width << ' ' << height << " 255\n";
+  out << "P3 " << width << ' ' << height << " 31\n";
   for (int sy = 0; sy < height; sy++) {
     for (int sx = 0; sx < width; sx++) {
       const pixel& px = frame[sy][sx];
@@ -51,4 +51,6 @@ void render_ppm(ostream& out)
 int main()
 {
   render(put_pixel);
+
+  render_ppm(cout);
 }

@@ -3,5 +3,6 @@
 *.elf
 *.bin
 *.iso
+*.cue
 *.ppm
 *.png

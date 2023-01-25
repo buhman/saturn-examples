@@ -24,8 +24,24 @@ struct sphere {
   vec3 color;
 };
 
+enum class light_type {
+  ambient,
+  point,
+  directional
+};
+
+struct light {
+  light_type type;
+  fp16_16 intensity;
+  union {
+    vec3 position;
+    vec3 direction;
+  };
+};
+
 struct scene {
-  sphere spheres[3];
+  sphere spheres[4];
+  light lights[3];
 };
 
 constexpr scene scene {
@@ -44,16 +60,64 @@ constexpr scene scene {
       {-2, 0, 4},
       fp16_16(1),
       {0, 1, 0},
+    },
+    {
+      {0, -61, 0},
+      fp16_16(60),
+      {1, 1, 0},
+    }
+  },
+  { // lights
+    {
+      light_type::ambient, // type
+      fp16_16(65536 * 0.2, fp_raw_tag{}),        // intensity
+      {{0, 0, 0}}          //
+    },
+    {
+      light_type::point,   // type
+      fp16_16(65536 * 0.6, fp_raw_tag{}),        // intensity
+      {{2, 1, 0}}          // position
+    },
+    {
+      light_type::directional, // type
+      fp16_16(65536 * 0.6, fp_raw_tag{}),        // intensity
+      {{1, 4, 4}}          // direction
     }
   }
 };
 
 static_assert(scene.spheres[0].center.z.value == (3 << 16));
+static_assert(scene.lights[0].intensity.value != 0);
+static_assert(scene.lights[1].position.x.value == (2 << 16));
 
 struct t1_t2 {
   fp16_16 t1;
   fp16_16 t2;
 };
+
+fp16_16 compute_lighting(const vec3& point, const vec3& normal)
+{
+  fp16_16 intensity{0};
+
+  for (int i = 0; i < 3; i++) {
+    const light& light = scene.lights[i];
+    if (light.type == light_type::ambient) {
+      intensity += light.intensity;
+    } else {
+      vec3 light_vector;
+      if (light.type == light_type::point) {
+        light_vector = light.position - point;
+      } else {
+        light_vector = light.direction;
+      }
+      auto n_dot_l = dot(normal, light_vector);
+      if (n_dot_l > fp16_16(0)) {
+        intensity += light.intensity * n_dot_l * (fp16_16(1) / length(light_vector));
+      }
+    }
+  }
+  return intensity;
+}
 
 t1_t2 intersect_ray_sphere(const vec3& origin, const vec3& direction, const sphere& sphere)
 {
@@ -87,7 +151,7 @@ static vec3 trace_ray
 {
   fp16_16 closest_t = fp_limits<fp16_16>::max();
   const sphere * closest_sphere = nullptr;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     auto& sphere = scene.spheres[i];
     auto [t1, t2] = intersect_ray_sphere(origin, direction, sphere);
     if (t1 >= t_min && t1 < t_max && t1 < closest_t) {
@@ -102,7 +166,10 @@ static vec3 trace_ray
   if (closest_sphere == nullptr) {
     return vec3(0, 0, 0);
   } else {
-    return closest_sphere->color;
+    vec3 point = origin + direction * closest_t;
+    vec3 normal = point - closest_sphere->center;
+    normal = normal * (fp16_16(1) / length(normal));
+    return closest_sphere->color * compute_lighting(point, normal);
   }
 }
 
