@@ -22,6 +22,7 @@ struct sphere {
   vec3 center;
   fp16_16 radius;
   vec3 color;
+  fp16_16 specular;
 };
 
 enum class light_type {
@@ -48,23 +49,27 @@ constexpr scene scene {
   { // spheres
     {
       {0, -1, 3}, // center
-      fp16_16(1), // radius
+      1,          // radius
       {1, 0, 0},  // color
+      8,          // specular
     },
     {
       {2, 0, 4},
-      fp16_16(1),
+      1,
       {0, 0, 1},
+      10
     },
     {
       {-2, 0, 4},
       fp16_16(1),
       {0, 1, 0},
+      10,
     },
     {
       {0, -61, 0},
       fp16_16(60),
       {1, 1, 0},
+      0
     }
   },
   { // lights
@@ -95,7 +100,8 @@ struct t1_t2 {
   fp16_16 t2;
 };
 
-fp16_16 compute_lighting(const vec3& point, const vec3& normal)
+fp16_16 compute_lighting(const vec3& point, const vec3& normal,
+                         const vec3& viewer, fp16_16 specular)
 {
   fp16_16 intensity{0};
 
@@ -110,9 +116,21 @@ fp16_16 compute_lighting(const vec3& point, const vec3& normal)
       } else {
         light_vector = light.direction;
       }
+
+      // diffuse
       auto n_dot_l = dot(normal, light_vector);
       if (n_dot_l > fp16_16(0)) {
         intensity += light.intensity * n_dot_l * (fp16_16(1) / length(light_vector));
+      }
+
+      // specular
+      if (specular > fp16_16(0)) {
+        auto reflected = normal * fp16_16(2) * dot(normal, light_vector) - light_vector;
+        auto r_dot_v = dot(reflected, viewer);
+        if (r_dot_v > fp16_16(0)) {
+          auto base = r_dot_v / (length(reflected) * length(viewer));
+          intensity += light.intensity * pow(base, specular);
+        }
       }
     }
   }
@@ -169,7 +187,8 @@ static vec3 trace_ray
     vec3 point = origin + direction * closest_t;
     vec3 normal = point - closest_sphere->center;
     normal = normal * (fp16_16(1) / length(normal));
-    return closest_sphere->color * compute_lighting(point, normal);
+    return closest_sphere->color * compute_lighting(point, normal,
+                                                    -direction, closest_sphere->specular);
   }
 }
 

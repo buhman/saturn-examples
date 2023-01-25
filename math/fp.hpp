@@ -28,6 +28,8 @@ struct fp
   inline constexpr fp<T, I, B>& operator+=(fp<T, I, B> const& v);
 
   inline constexpr fp<T, I, B>& operator-=(fp<T, I, B> const& v);
+
+  inline constexpr fp<T, I, B>& operator*=(fp<T, I, B> const& v);
 };
 
 template <typename T, typename I, int B>
@@ -48,6 +50,13 @@ template <typename T, typename I, int B>
 inline constexpr fp<T, I, B>& fp<T, I, B>::operator-=(fp<T, I, B> const& v)
 {
   *this = *this - v;
+  return *this;
+}
+
+template <typename T, typename I, int B>
+inline constexpr fp<T, I, B>& fp<T, I, B>::operator*=(fp<T, I, B> const& v)
+{
+  *this = *this * v;
   return *this;
 }
 
@@ -151,11 +160,23 @@ struct fp_limits<fp<T, I, B>>
   }
 };
 
+// functions
+
+template <typename T, typename I, int B>
+constexpr inline fp<T, I, B> pow(fp<T, I, B> a, fp<T, I, B> b) noexcept
+{
+  while (b > fp<T, I, B>(1)) {
+    a *= a;
+    b -= fp<T, I, B>(1);
+  }
+  return a;
+}
+
 // specializations
 
 using fp16_16 = fp<int32_t, int64_t, 16>;
 
-constexpr fp16_16 sqrt(fp16_16 n) noexcept
+constexpr inline fp16_16 sqrt(const fp16_16& n) noexcept
 {
   int32_t x = n.value;
   int32_t c = 0;

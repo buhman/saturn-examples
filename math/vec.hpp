@@ -25,6 +25,11 @@ struct vec<3, T>
 
   inline constexpr T const& operator[](int i) const;
 
+  constexpr inline vec<3, T> operator-() const noexcept
+  {
+    return vec<3, T>(-x, -y, -z);
+  }
+
   inline constexpr vec<3, T>& operator=(vec<3, T> const& v);
 
   inline constexpr vec<3, T>& operator+=(vec<3, T> const& v);
