@@ -50,7 +50,8 @@ void render_ppm(ostream& out)
 
 int main()
 {
-  render(put_pixel);
+  render(0, put_pixel);
+  render(1, put_pixel);
 
   render_ppm(cout);
 }

@@ -12,4 +12,4 @@ namespace canvas {
   constexpr int height = (1 << bit_height);
 }
 
-void render(void (&put_pixel) (int32_t x, int32_t y, const vec3& c));
+void render(int half, void (&put_pixel) (int32_t x, int32_t y, const vec3& c));

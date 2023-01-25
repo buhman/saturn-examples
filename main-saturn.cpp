@@ -54,6 +54,43 @@ void fill(T * buf, T v, int32_t n) noexcept
   }
 }
 
+extern "C"
+void slave_main(void)
+{
+  render(1, put_pixel);
+
+  while (1) {}
+}
+
+void start_slave()
+{
+  /*
+    Items Common to Command Issue Timing
+    As mentioned above, issuing commands for 300 µs from V-BLANK-IN is
+    prohibited.
+  */
+  while ((smpc.reg.SF & 0x01) == 1);
+
+  smpc.reg.SF = 1;
+  smpc.reg.COMREG = COMREG__SSHOFF;
+
+  while ((smpc.reg.SF & 0x01) == 1);
+
+  /*
+  volatile void (*foo)(uint32_t, void*);
+  foo = *(volatile void (**)(uint32_t, void*))0x6000310;
+  foo(0x94, (void*)&slave_main);
+  */
+  sh2_vec[0x94] = (uint32_t)(&slave_main);
+
+  for (volatile int i = 0; i < 10; i++);
+
+  smpc.reg.SF = 1;
+  smpc.reg.COMREG = COMREG__SSHON;
+
+  while ((smpc.reg.SF & 0x01) == 1);
+}
+
 void main_asdf()
 {
   // DISP: Please make sure to change this bit from 0 to 1 during V blank.
@@ -89,7 +126,9 @@ void main_asdf()
   vdp2.reg.WCTLB = 0;
   vdp2.reg.WCTLC = 0;
 
-  render(put_pixel);
+  start_slave();
+
+  render(0, put_pixel);
 }
 
 extern "C"
