@@ -25,7 +25,7 @@ sh/lib1funcs.o: CFLAGS += -DL_ashiftrt -DL_movmem
 raytracing/raytracing.elf: CFLAGS += -Imath -DUSE_SH2_DVSR
 raytracing/raytracing.elf: raytracing/main-saturn.o raytracing/raytracing.o sh/lib1funcs.o
 
-vdp2/vdp2.elf: vdp2/vdp2.o res/butterfly.data.o res/butterfly.data.pal.o
+vdp2/nbg0.elf: vdp2/nbg0.o res/butterfly.data.o res/butterfly.data.pal.o
 
 # clean
 clean: clean-sh
