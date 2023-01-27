@@ -23,6 +23,7 @@ struct sphere {
   fp16_16 radius;
   vec3 color;
   fp16_16 specular;
+  fp16_16 reflective;
 };
 
 enum class light_type {
@@ -52,24 +53,28 @@ constexpr scene scene {
       1,          // radius
       {1, 0, 0},  // color
       8,          // specular
+      fp16_16(65536 * 0.2, fp_raw_tag{}) // reflective
     },
     {
       {2, 0, 4},
       1,
       {0, 0, 1},
-      10
+      10,
+      fp16_16(65536 * 0.3, fp_raw_tag{})
     },
     {
       {-2, 0, 4},
       fp16_16(1),
       {0, 1, 0},
       10,
+      fp16_16(65536 * 0.4, fp_raw_tag{})
     },
     {
-      {0, -61, 0},
-      fp16_16(60),
+      {0, -31, 0},
+      fp16_16(30),
       {1, 1, 0},
-      0
+      0,
+      fp16_16(65536 * 0.5, fp_raw_tag{})
     }
   },
   { // lights
@@ -199,12 +204,18 @@ fp16_16 compute_lighting(const vec3& point, const vec3& normal,
   return intensity;
 }
 
+constexpr inline vec3 reflect_ray(const vec3& r, const vec3& n)
+{
+  return n * fp16_16(2) * dot(n, r) - r;
+}
+
 static vec3 trace_ray
 (
   const vec3& origin,
   const vec3& direction,
   const fp16_16 t_min,
-  const fp16_16 t_max
+  const fp16_16 t_max,
+  const int recursion_depth
 )
 {
   auto [closest_t, closest_sphere] = closest_intersection(origin, direction, t_min, t_max);
@@ -214,8 +225,21 @@ static vec3 trace_ray
     vec3 point = origin + direction * closest_t;
     vec3 normal = point - closest_sphere->center;
     normal = normal * (fp16_16(1) / length(normal));
-    return closest_sphere->color * compute_lighting(point, normal,
-                                                    -direction, closest_sphere->specular);
+    auto direction_neg = -direction;
+    auto intensity = compute_lighting(point, normal, direction_neg, closest_sphere->specular);
+    auto local_color = closest_sphere->color * intensity;
+
+    const auto& reflective = closest_sphere->reflective;
+    if (recursion_depth <= 0 || reflective <= fp16_16(0)) {
+      return local_color;
+    } else {
+      auto reflected_ray = reflect_ray(direction_neg, normal);
+      auto reflected_color = trace_ray(point, reflected_ray,
+                                       fp16_16(128, fp_raw_tag{}),
+                                       fp_limits<fp16_16>::max(),
+                                       recursion_depth - 1);
+      return local_color * (fp16_16(1) - reflective) + reflected_color * reflective;
+    }
   }
 }
 
@@ -225,8 +249,8 @@ void render(int half, void (&put_pixel) (int32_t x, int32_t y, const vec3& c))
 
   vec3 origin = vec3(0, 0, 0);
 
-  int x_low = half ? 0 : -(width/2);
-  int x_high = half ? (width/2) : 0;
+  int x_low = half ? 0 : -(320/2);
+  int x_high = half ? (320/2) : 0;
 
   //for (int x = -(width/2); x < (width/2); x++) {
   for (int x = x_low; x < x_high; x++) {
@@ -234,7 +258,8 @@ void render(int half, void (&put_pixel) (int32_t x, int32_t y, const vec3& c))
       vec3 direction = canvas_to_viewport(x, y);
       vec3 color = trace_ray(origin, direction,
                              fp16_16(1),
-                             fp_limits<fp16_16>::max());
+                             fp_limits<fp16_16>::max(),
+                             2);
       put_pixel(x, y, color);
     }
   }
