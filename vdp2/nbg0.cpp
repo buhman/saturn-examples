@@ -79,7 +79,7 @@ void main()
   vdp2.reg.BGON = BGON__N0ON;
 
   /* set character format for NBG0 to palettized 2048 color
-     set bitmap size for NBG0 to 512x256
+     set enable "cell format" for NBG0
      set character size for NBG0 to 1x1 cell */
   vdp2.reg.CHCTLA = CHCTLA__N0CHCN__2048_COLOR
                   | CHCTLA__N0BMEN__CELL_FORMAT
@@ -114,7 +114,7 @@ void main()
   fill<uint32_t>(&vdp2.vram.u32[(0 / 2)], 0, plane_a_offset);
 
   // "zeroize" plane_a to the 0x40th (64th) character index (an unused/transparent character)
-  // this creates the '40' indexes in the above picture
+  // this creates the '40' indexes in the below picture
   fill<uint16_t>(&vdp2.vram.u16[(plane_a_offset / 2)], character_offset * 0x40, plane_size);
 
   constexpr int pixel_width = 64;
