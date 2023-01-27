@@ -86,7 +86,7 @@ void main()
                   | CHCTLA__N0CHSZ__1x1_CELL;
   /* "Note: In color RAM modes 0 and 2, 2048-color becomes 1024-color" */
 
-  /* use 2-word (16-bit) pattern names */
+  /* use 1-word (16-bit) pattern names */
   vdp2.reg.PNCN0 = PNCN0__N0PNB__1WORD;
 
   /* plane size */
@@ -113,6 +113,17 @@ void main()
   // zeroize character/cell data from 0 up to plane_a_offset
   fill<uint32_t>(&vdp2.vram.u32[(0 / 2)], 0, plane_a_offset);
 
+  // "zeroize" plane_a to the 0x40th (64th) character index (an unused/transparent character)
+  // this creates the '40' indexes in the above picture
+  fill<uint16_t>(&vdp2.vram.u16[(plane_a_offset / 2)], character_offset * 0x40, plane_size);
+
+  constexpr int pixel_width = 64;
+  constexpr int pixel_height = 64;
+  constexpr int cell_horizontal = pixel_width / 8;
+  constexpr int cell_vertical = pixel_height / 8;
+
+  constexpr int page_width = 64;
+
   /*
   set plane_a character index data to this (hex):
 
@@ -131,17 +142,6 @@ void main()
 
   (the above numbers are not pre-multiplied by character_offset)
   */
-  // "zeroize" plane_a to the 0x40th (64th) character index (an unused/transparent character)
-  // this creates the '40' indexes in the above picture
-  fill<uint16_t>(&vdp2.vram.u16[(plane_a_offset / 2)], character_offset * 0x40, plane_size);
-
-  constexpr int pixel_width = 64;
-  constexpr int pixel_height = 64;
-  constexpr int cell_horizontal = pixel_width / 8;
-  constexpr int cell_vertical = pixel_height / 8;
-
-  constexpr int page_width = 64;
-
   for (int y = 0; y < cell_vertical; y++) {
     for (int x = 0; x < cell_horizontal; x++) {
       vdp2.vram.u16[(plane_a_offset / 2) + (y * page_width) + x]
