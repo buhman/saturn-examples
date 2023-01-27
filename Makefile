@@ -2,7 +2,7 @@ CFLAGS = -Isaturn
 OPT = -Os
 LIBGCC = $(shell $(CC) -print-file-name=libgcc.a)
 
-all: raytracing.iso vdp2.iso
+all: raytracing/raytracing.iso vdp2/nbg0.iso
 
 LIB = ./saturn
 include $(LIB)/common.mk
