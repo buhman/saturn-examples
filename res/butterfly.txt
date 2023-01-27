@@ -1,0 +1,2 @@
+data: 64x64 px, palettized, 1 byte per pixel
+data.pal: 3 bytes per color, rgb24, red at index 0
