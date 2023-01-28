@@ -30,45 +30,45 @@ void main()
   constexpr uint16_t black = 0x0000;
   vdp1.reg.EWDR = black;
 
-  // the EWLR/EWRR macros use somewhat nontrivial math for the X1 coordinates
+  // the EWLR/EWRR macros use somewhat nontrivial math for the X coordinates
   // erase upper-left coordinate
   vdp1.reg.EWLR = EWLR__16BPP_X1(0) | EWLR__Y1(0);
 
   // erase lower-right coordinate
   vdp1.reg.EWRR = EWRR__16BPP_X3(319) | EWRR__Y3(239);
 
-  vdp1.vram.cmd[0].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__USER_CLIP_COORDINATES;
+  vdp1.vram.cmd[0].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__SYSTEM_CLIP_COORDINATES;
   vdp1.vram.cmd[0].LINK = 0;
-  vdp1.vram.cmd[0].XA = 0;
-  vdp1.vram.cmd[0].YA = 0;
   vdp1.vram.cmd[0].XC = 319;
   vdp1.vram.cmd[0].YC = 239;
 
-  vdp1.vram.cmd[1].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__SYSTEM_CLIP_COORDINATES;
+  vdp1.vram.cmd[1].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__LOCAL_COORDINATE;
   vdp1.vram.cmd[1].LINK = 0;
-  vdp1.vram.cmd[1].XC = 319;
-  vdp1.vram.cmd[1].YC = 239;
-
-  vdp1.vram.cmd[2].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__LOCAL_COORDINATE;
-  vdp1.vram.cmd[2].LINK = 0;
-  vdp1.vram.cmd[2].XA = 0;
-  vdp1.vram.cmd[2].YA = 0;
+  vdp1.vram.cmd[1].XA = 0;
+  vdp1.vram.cmd[1].YA = 0;
 
   constexpr uint16_t magenta = (0x31 << 10) | (0x31 << 0);
-  vdp1.vram.cmd[3].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__POLYGON;
-  vdp1.vram.cmd[3].LINK = 0;
-  vdp1.vram.cmd[3].PMOD = CTRL__PMOD__ECD | CTRL__PMOD__SPD;
-  vdp1.vram.cmd[3].COLR = (1 << 15) | magenta; // non-palettized (rgb15) color data
-  vdp1.vram.cmd[3].XA = 100;
-  vdp1.vram.cmd[3].YA = 50;
-  vdp1.vram.cmd[3].XB = 150;
-  vdp1.vram.cmd[3].YB = 100;
-  vdp1.vram.cmd[3].XC = 100;
-  vdp1.vram.cmd[3].YC = 150;
-  vdp1.vram.cmd[3].XD =  50;
-  vdp1.vram.cmd[3].YD = 100;
+  vdp1.vram.cmd[2].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__POLYGON;
+  vdp1.vram.cmd[2].LINK = 0;
+  // "Set [ECD] to '1' for polygons, polylines, and lines"
+  // "Be sure to set [SPD] to '1' for polygons, polylines, and lines"
+  //
+  // The "user clip mode" bit is not set in PMOD here, so setting "user clip
+  // coordinates" has no effect on this draw command. However, "system clip
+  // coordinates" and "local coordinates" are always applied, and must be set to
+  // reasonable values.
+  vdp1.vram.cmd[2].PMOD = PMOD__ECD | PMOD__SPD;
+  vdp1.vram.cmd[2].COLR = COLR__RGB | magenta; // non-palettized (rgb15) color data
+  vdp1.vram.cmd[2].XA = 100;
+  vdp1.vram.cmd[2].YA = 50;
+  vdp1.vram.cmd[2].XB = 150;
+  vdp1.vram.cmd[2].YB = 100;
+  vdp1.vram.cmd[2].XC = 100;
+  vdp1.vram.cmd[2].YC = 150;
+  vdp1.vram.cmd[2].XD = 50;
+  vdp1.vram.cmd[2].YD = 100;
 
-  vdp1.vram.cmd[4].CTRL = CTRL__END;
+  vdp1.vram.cmd[3].CTRL = CTRL__END;
 
   // start drawing (execute the command list) on every frame
   vdp1.reg.PTMR = PTMR__PTM__FRAME_CHANGE;
