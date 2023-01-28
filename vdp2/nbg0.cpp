@@ -56,7 +56,7 @@ void cell_data()
   }
 }
 
-template <class T>
+template <typename T>
 void fill(T * buf, T v, int32_t n) noexcept
 {
   while (n > 0) {
