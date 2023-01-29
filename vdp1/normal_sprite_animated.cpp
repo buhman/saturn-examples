@@ -1,12 +1,14 @@
 #include <stdint.h>
 #include "vdp2.h"
 #include "vdp1.h"
+#include "scu.h"
+#include "sh2.h"
 
 extern void * _mai_data_pal_start __asm("_binary_res_mai_data_pal_start");
 extern void * _mai_data_pal_size __asm("_binary_res_mai_data_pal_size");
 
-extern void * _mai00_data_start __asm("_binary_res_mai00_data_start");
-extern void * _mai00_data_size __asm("_binary_res_mai00_data_size");
+extern void * _mai_data_start __asm("_binary_res_mai_data_start");
+extern void * _mai_data_size __asm("_binary_res_mai_data_size");
 
 inline constexpr uint16_t rgb15(const uint8_t * rgb24)
 {
@@ -45,8 +47,8 @@ uint32_t color_lookup_table(const uint32_t top)
 
 uint32_t character_pattern_table(const uint32_t top)
 {
-  const uint32_t buf_size = reinterpret_cast<uint32_t>(&_mai00_data_size);
-  const uint32_t * buf = reinterpret_cast<uint32_t*>(&_mai00_data_start);
+  const uint32_t buf_size = reinterpret_cast<uint32_t>(&_mai_data_size);
+  const uint32_t * buf = reinterpret_cast<uint32_t*>(&_mai_data_start);
 
   // Unlike vdp2 cell format, vdp1 sprites appear to be much more dimensionally
   // flexible. The data is interpreted as a row-major packed array, where the
@@ -76,9 +78,37 @@ uint32_t character_pattern_table(const uint32_t top)
   return table_address;
 }
 
+constexpr uint32_t sprite_width = 72;
+constexpr uint32_t sprite_height = 100;
+constexpr uint32_t sprite_last_frame = 15;
+
+static uint32_t color_address, character_address;
+static uint32_t sprite_frame_index;
+static uint32_t animation_timer;
+
+// __attribute__ ((interrupt_handler)) changes code generation behavior for this
+// function works. `rts` as generated in normal functions is replaced with
+// `rte`.
+void v_blank_in(void) __attribute__ ((interrupt_handler));
+void v_blank_in(void)
+{
+  // clear V_BLANK_IN interrupt status
+  scu.reg.IST &= ~(IST__V_BLANK_IN);
+
+  if (++animation_timer < 4)
+    return;
+  else
+    animation_timer = 0;
+
+  // 4 bits == 0.5 bytes per pixel
+  constexpr uint32_t sprite_size = (sprite_width * sprite_height) / 2;
+
+  sprite_frame_index = sprite_frame_index == sprite_last_frame ? 0 : sprite_frame_index + 1;
+  vdp1.vram.cmd[2].SRCA = SRCA(character_address + (sprite_size * sprite_frame_index));
+}
+
 void main()
 {
-  uint32_t color_address, character_address;
   uint32_t top = (sizeof (union vdp1_vram));
   top = color_address     = color_lookup_table(top);
   top = character_address = character_pattern_table(top);
@@ -139,9 +169,9 @@ void main()
   // It appears Kronos does not correctly calculate the color address in the
   // VDP1 debugger. Kronos will report FFFC when the actual color table address
   // in this example is 7FFE0.
-  vdp1.vram.cmd[2].COLR = color_address >> 3; // non-palettized (rgb15) color data
-  vdp1.vram.cmd[2].SRCA = character_address >> 3;
-  vdp1.vram.cmd[2].SIZE = SIZE__X(72) | SIZE__Y(100);
+  vdp1.vram.cmd[2].COLR = COLR__ADDRESS(color_address); // non-palettized (rgb15) color data
+  vdp1.vram.cmd[2].SRCA = SRCA(character_address);
+  vdp1.vram.cmd[2].SIZE = SIZE__X(sprite_width) | SIZE__Y(sprite_height);
   vdp1.vram.cmd[2].XA = 100;
   vdp1.vram.cmd[2].YA = 100;
 
@@ -149,6 +179,15 @@ void main()
 
   // start drawing (execute the command list) on every frame
   vdp1.reg.PTMR = PTMR__PTM__FRAME_CHANGE;
+
+  //
+  sprite_frame_index = 0;
+  animation_timer = 0;
+  sh2_vec[SCU_VEC__V_BLANK_IN] = reinterpret_cast<uint32_t>(&v_blank_in);
+
+  // reset/enable V_BLANK_IN interrupt
+  scu.reg.IST = 0;
+  scu.reg.IMS = ~(IMS__V_BLANK_IN);
 }
 
 extern "C"
