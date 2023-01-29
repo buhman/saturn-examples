@@ -20,9 +20,9 @@ extern void * _butterfly_data_size __asm("_binary_res_butterfly_data_size");
 
 inline constexpr uint16_t rgb15(const uint8_t * buf)
 {
-  return ((buf[2] >> 3) << 10)
-       | ((buf[1] >> 3) << 5)
-       | ((buf[0] >> 3) << 0);
+  return ((buf[2] >> 3) << 10) // blue
+       | ((buf[1] >> 3) << 5)  // green
+       | ((buf[0] >> 3) << 0); // red
 }
 
 void palette_data()

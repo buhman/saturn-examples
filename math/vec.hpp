@@ -2,14 +2,14 @@
 
 #include "math.hpp"
 
-template<int L, typename T>
+template <int L, typename T>
 struct vec;
 
 //
 // vec3
 //
 
-template<typename T>
+template <typename T>
 struct vec<3, T>
 {
   union
@@ -67,7 +67,7 @@ inline constexpr T const& vec<3, T>::operator[](int i) const
   }
 }
 
-template<typename T>
+template <typename T>
 inline constexpr vec<3, T>& vec<3, T>::operator=(vec<3, T> const& v)
 {
   this->x = static_cast<T>(v.x);
@@ -76,14 +76,14 @@ inline constexpr vec<3, T>& vec<3, T>::operator=(vec<3, T> const& v)
   return *this;
 }
 
-template<typename T>
+template <typename T>
 inline constexpr vec<3, T>& vec<3, T>::operator+=(vec<3, T> const& v)
 {
   *this = *this + vec<3, T>(v);
   return *this;
 }
 
-template<typename T>
+template <typename T>
 inline constexpr vec<3, T>& vec<3, T>::operator-=(vec<3, T> const& v)
 {
   *this = *this + vec<3, T>(v);
