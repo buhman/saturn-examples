@@ -1,5 +1,5 @@
 CFLAGS = -Isaturn
-OPT = -Os
+OPT = -O0
 LIBGCC = $(shell $(CC) -print-file-name=libgcc.a)
 
 all: raytracing/raytracing.iso vdp2/nbg0.iso
@@ -17,6 +17,9 @@ endef
 %.data.o: %.data
 	$(BUILD_BINARY_O)
 
+%.bin.o: %.bin
+	$(BUILD_BINARY_O)
+
 %.data.pal.o: %.data.pal
 	$(BUILD_BINARY_O)
 
@@ -31,6 +34,8 @@ vdp1/polygon.elf: vdp1/polygon.o
 vdp1/normal_sprite.elf: vdp1/normal_sprite.o res/mai00.data.o res/mai.data.pal.o
 
 vdp1/normal_sprite_color_bank.elf: vdp1/normal_sprite_color_bank.o res/mai00.data.o res/mai.data.pal.o
+
+vdp1/kana.elf: vdp1/kana.o res/ipafont.bin.o sh/lib1funcs.o
 
 res/mai.data: res/mai00.data res/mai01.data res/mai02.data res/mai03.data res/mai04.data res/mai05.data res/mai06.data res/mai07.data res/mai08.data res/mai09.data res/mai10.data res/mai11.data res/mai12.data res/mai13.data res/mai14.data res/mai15.data
 	cat $(sort $^) > $@
