@@ -83,8 +83,8 @@ constexpr uint32_t sprite_height = 100;
 constexpr uint32_t sprite_last_frame = 15;
 
 static uint32_t color_address, character_address;
-static uint32_t sprite_frame_index;
 static uint32_t animation_timer;
+static uint32_t sprite_frame_index;
 
 // __attribute__ ((interrupt_handler)) changes code generation behavior for this
 // function works. `rts` as generated in normal functions is replaced with
@@ -94,8 +94,9 @@ void v_blank_in(void)
 {
   // clear V_BLANK_IN interrupt status
   scu.reg.IST &= ~(IST__V_BLANK_IN);
+  scu.reg.IMS = ~(IMS__V_BLANK_IN);
 
-  if (++animation_timer < 4)
+  if (++animation_timer < 6)
     return;
   else
     animation_timer = 0;
@@ -116,6 +117,9 @@ void main()
   // DISP: Please make sure to change this bit from 0 to 1 during V blank.
   vdp2.reg.TVMD = ( TVMD__DISP | TVMD__LSMD__NON_INTERLACE
                   | TVMD__VRESO__240 | TVMD__HRESO__NORMAL_320);
+
+  // disable all VDP2 backgrounds (e.g: the Sega bios logo)
+  vdp2.reg.BGON = 0;
 
   // VDP2 User's Manual:
   // "When sprite data is in an RGB format, sprite register 0 is selected"
