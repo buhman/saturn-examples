@@ -43,7 +43,7 @@ void put_pixel(int32_t x, int32_t y, const vec3& color)
   if (sx >= 320 || sx < 0 || sy >= 240 || sy < 0)
     return;
 
-  vdp2.vram.u32[512 * sy + sx] = rgb24(color);
+  vdp2.vram.u16[512 * sy + sx] = rgb15(color);
 }
 
 template <class T>
@@ -101,8 +101,8 @@ void main_asdf()
   vdp2.reg.BGON = BGON__N0ON;
 
   vdp2.reg.CHCTLA = (
-                   // CHCTLA__N0CHCN__32K_COLOR // 15 bits per pixel, RGB
-                      CHCTLA__N0CHCN__16M_COLOR // 24 bits per pixel
+                      CHCTLA__N0CHCN__32K_COLOR // 15 bits per pixel, RGB
+                   // CHCTLA__N0CHCN__16M_COLOR // 24 bits per pixel
                     | CHCTLA__N0BMSZ__512x256_DOT
                     | CHCTLA__N0BMEN__BITMAP_FORMAT
                     );
