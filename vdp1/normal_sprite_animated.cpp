@@ -54,12 +54,12 @@ uint32_t character_pattern_table(const uint32_t top)
   // flexible. The data is interpreted as a row-major packed array, where the
   // row/horizontal stride is equal to the sprite width (as configured in the
   // draw command). This is identical to how the input palette index data is
-  // structured, so there is no transformation to do here, only a plain memory
-  // copy.
-
-  // Divide `buf_size` by two because this converts (indexed color) 8 bit pixels
-  // to 4 bit pixels. Round up to the nearest 0x20 (for an 8000 pixel/8000 byte
-  // image, this rounding is a no-op).
+  // structured, in that the stride of the input image data is deliberately the
+  // same as the stride of the vdp1 sprite.
+  //
+  // Divide `buf_size` by two because this is a conversion from (indexed color)
+  // 8 bit pixels to 4 bit pixels. Round up to the nearest 0x20 (for an 8000
+  // pixel/8000 byte image, this rounding is a no-op).
   const uint32_t table_size = ((buf_size / 2) + 0x20 - 1) & (-0x20);
   const uint32_t table_address = top - table_size;
   uint16_t * table = &vdp1.vram.u16[(table_address / 2)];
