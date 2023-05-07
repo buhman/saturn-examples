@@ -96,44 +96,6 @@ uint32_t character_pattern_table(const uint32_t top, int color)
   return table_address;
 }
 
-static inline const reg8& get_oreg(uint32_t ix) {
-  switch (ix & 31) {
-  default:
-  case 0:  return smpc.reg.OREG0;
-  case 1:  return smpc.reg.OREG1;
-  case 2:  return smpc.reg.OREG2;
-  case 3:  return smpc.reg.OREG3;
-  case 4:  return smpc.reg.OREG4;
-  case 5:  return smpc.reg.OREG5;
-  case 6:  return smpc.reg.OREG6;
-  case 7:  return smpc.reg.OREG7;
-  case 8:  return smpc.reg.OREG8;
-  case 9:  return smpc.reg.OREG9;
-  case 10: return smpc.reg.OREG10;
-  case 11: return smpc.reg.OREG11;
-  case 12: return smpc.reg.OREG12;
-  case 13: return smpc.reg.OREG13;
-  case 14: return smpc.reg.OREG14;
-  case 15: return smpc.reg.OREG15;
-  case 16: return smpc.reg.OREG16;
-  case 17: return smpc.reg.OREG17;
-  case 18: return smpc.reg.OREG18;
-  case 19: return smpc.reg.OREG19;
-  case 20: return smpc.reg.OREG20;
-  case 21: return smpc.reg.OREG21;
-  case 22: return smpc.reg.OREG22;
-  case 23: return smpc.reg.OREG23;
-  case 24: return smpc.reg.OREG24;
-  case 25: return smpc.reg.OREG25;
-  case 26: return smpc.reg.OREG26;
-  case 27: return smpc.reg.OREG27;
-  case 28: return smpc.reg.OREG28;
-  case 29: return smpc.reg.OREG29;
-  case 30: return smpc.reg.OREG30;
-  case 31: return smpc.reg.OREG31;
-  }
-}
-
 struct controller_state {
   uint8_t up;
   uint8_t down;
@@ -194,7 +156,7 @@ void smpc_int(void) {
     - both controllers must be "digital pad" controllers
    */
   while (oreg_ix < 31) {
-    const reg8& oreg = get_oreg(oreg_ix++);
+    reg8 const& oreg = smpc.reg.oreg[oreg_ix++];
     switch (intback.fsm++) {
     case PORT_STATUS:
       port_connected = (PORT_STATUS__CONNECTORS(oreg) == 1);
@@ -231,9 +193,9 @@ void smpc_int(void) {
   }
 
   if ((smpc.reg.SR & SR__NPE) != 0) {
-    smpc.reg.IREG0 = INTBACK__IREG0__CONTINUE;
+    smpc.reg.ireg[0] = INTBACK__IREG0__CONTINUE;
   } else {
-    smpc.reg.IREG0 = INTBACK__IREG0__BREAK;
+    smpc.reg.ireg[0] = INTBACK__IREG0__BREAK;
   }
 }
 
@@ -266,12 +228,12 @@ void v_blank_in_int() {
 
     smpc.reg.SF = 0;
 
-    smpc.reg.IREG0 = INTBACK__IREG0__STATUS_DISABLE;
-    smpc.reg.IREG1 = ( INTBACK__IREG1__PERIPHERAL_DATA_ENABLE
-                     | INTBACK__IREG1__PORT2_15BYTE
-                     | INTBACK__IREG1__PORT1_15BYTE
-                     );
-    smpc.reg.IREG2 = INTBACK__IREG2__MAGIC;
+    smpc.reg.ireg[0] = INTBACK__IREG0__STATUS_DISABLE;
+    smpc.reg.ireg[1] = ( INTBACK__IREG1__PERIPHERAL_DATA_ENABLE
+                       | INTBACK__IREG1__PORT2_15BYTE
+                       | INTBACK__IREG1__PORT1_15BYTE
+                       );
+    smpc.reg.ireg[2] = INTBACK__IREG2__MAGIC;
 
     smpc.reg.COMREG = COMREG__INTBACK;
   }
