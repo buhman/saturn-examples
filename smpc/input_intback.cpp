@@ -160,15 +160,20 @@ void smpc_int(void) {
     switch (intback.fsm++) {
     case PORT_STATUS:
       port_connected = (PORT_STATUS__CONNECTORS(oreg) == 1);
-      break;
-    case PERIPHERAL_ID:
       if (port_connected) {
-        assert(PERIPHERAL_ID__IS_DIGITAL_PAD(oreg));
-        assert(PERIPHERAL_ID__DATA_SIZE(oreg) == 2);
+        assert(PORT_STATUS__MULTITAP_ID(oreg) == 0xf);
+      } else {
+        intback.fsm = FSM_NEXT;
       }
       break;
+    case PERIPHERAL_ID:
+      assert(port_connected);
+      assert(PERIPHERAL_ID__IS_DIGITAL_PAD(oreg));
+      assert(PERIPHERAL_ID__DATA_SIZE(oreg) == 2);
+      break;
     case DATA1:
-      if (port_connected) {
+      assert(port_connected);
+      {
         controller_state& c = intback.controller[intback.controller_ix];
         c.right = (DIGITAL__1__RIGHT & oreg) == 0;
         c.left  = (DIGITAL__1__LEFT  & oreg) == 0;
@@ -177,6 +182,7 @@ void smpc_int(void) {
       }
       break;
     case DATA2:
+      assert(port_connected);
       // ignore data2
       break;
     }
