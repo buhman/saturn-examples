@@ -1,4 +1,6 @@
-#include <stdio.h>
+#include <sstream>
+#include <iostream>
+
 #include <assert.h>
 #include <stdint.h>
 #include <byteswap.h>
@@ -76,13 +78,14 @@ struct glyph {
 static_assert((sizeof (glyph)) == ((sizeof (glyph_bitmap)) + (sizeof (glyph_metrics))));
 
 struct font {
+  uint32_t char_code_offset;
   uint32_t glyph_index;
   uint32_t bitmap_offset;
   int32_t height;
   int32_t max_advance;
 } __attribute__ ((packed));
 
-static_assert((sizeof (font)) == ((sizeof (uint32_t)) * 4));
+static_assert((sizeof (font)) == ((sizeof (uint32_t)) * 5));
 
 int32_t
 load_outline_char(const FT_Face face,
@@ -96,7 +99,7 @@ load_outline_char(const FT_Face face,
 
   error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
   if (error) {
-    printf("FT_Load_Glyph %s\n", FT_Error_String(error));
+    std::cerr << "FT_Load_Glyph " << FT_Error_String(error) << '\n';
     return -1;
   }
 
@@ -104,12 +107,12 @@ load_outline_char(const FT_Face face,
 
   error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
   if (error) {
-    printf("FT_Render_Glyph %s\n", FT_Error_String(error));
+    std::cerr << "FT_Render_Glyph " << FT_Error_String(error) << '\n';
     return -1;
   }
 
   if (!(face->glyph->bitmap.pitch > 0)) {
-    printf("%lx : pitch == 0\n", char_code);
+    std::cerr << std::hex << char_code << " : pitch == 0\n";
     return 0;
   }
 
@@ -154,20 +157,21 @@ int main(int argc, char *argv[])
   FT_Face face;
   FT_Error error;
 
-  if (argc < 3) {
-    fprintf(stderr, "usage: %s [font-file-path] [output-file-path]\n", argv[0]);
+  if (argc < 5) {
+    std::cerr << "usage: " << argv[0] << " [start-hex] [end-hex] [font-file-path] [output-file-path]\n\n";
+    std::cerr << "   ex: " << argv[0] << " 3000 30ff ipagp.ttf font.bin\n";
     return -1;
   }
 
   error = FT_Init_FreeType(&library);
   if (error) {
-    fprintf(stderr, "FT_Init_FreeType\n");
+    std::cerr << "FT_Init_FreeType\n";
     return -1;
   }
 
-  error = FT_New_Face(library, argv[1], 0, &face);
+  error = FT_New_Face(library, argv[3], 0, &face);
   if (error) {
-    fprintf(stderr, "FT_New_Face\n");
+    std::cerr << "FT_New_Face\n";
     return -1;
   }
 
@@ -181,12 +185,20 @@ int main(int argc, char *argv[])
 
   error = FT_Set_Pixel_Sizes (face, 0, 30);
   if (error) {
-    fprintf(stderr, "FT_Set_Pixel_Sizes: %s %d\n", FT_Error_String(error), error);
+    std::cerr << "FT_Set_Pixel_Sizes: " << FT_Error_String(error) << error << '\n';
     return -1;
   }
 
-  uint32_t start = 0x3000;
-  uint32_t end = 0x30ff;
+  uint32_t start;
+  uint32_t end;
+
+  std::stringstream ss1;
+  ss1 << std::hex << argv[1];
+  ss1 >> start;
+  std::stringstream ss2;
+  ss2 << std::hex << argv[2];
+  ss2 >> end;
+
   //uint32_t start = 0x20;
   //uint32_t end = 0x7f;
 
@@ -203,7 +215,7 @@ int main(int argc, char *argv[])
                                     &glyph_bitmaps[0],
                                     bitmap_offset);
     if (bitmap_size < 0) {
-      fprintf(stderr, "load_outline_char error\n");
+      std::cerr << "load_outline_char error\n";
       return -1;
     }
 
@@ -213,6 +225,7 @@ int main(int argc, char *argv[])
   }
 
   font font;
+  font.char_code_offset = bswap_32(start);
   font.glyph_index = bswap_32(glyph_index);
   font.bitmap_offset = bswap_32(bitmap_offset);
   font.height = bswap_32(face->size->metrics.height);
@@ -220,10 +233,12 @@ int main(int argc, char *argv[])
 
   FT_Done_FreeType(library);
 
-  printf("bitmap_offset %u\n", bitmap_offset);
-  printf("glyph_index %u\n", glyph_index);
+  std::cerr << "start: 0x" << std::hex << start << '\n';
+  std::cerr << "end: 0x" << std::hex << end << '\n';
+  std::cerr << "bitmap_offset: 0x" << std::hex << bitmap_offset << '\n';
+  std::cerr << "glyph_index: 0x" << std::hex << glyph_index << '\n';
 
-  FILE * out = fopen(argv[2], "w");
+  FILE * out = fopen(argv[4], "w");
 
   fwrite(reinterpret_cast<void*>(&font), (sizeof (font)), 1, out);
   fwrite(reinterpret_cast<void*>(&glyphs[0]), (sizeof (glyph)), glyph_index, out);

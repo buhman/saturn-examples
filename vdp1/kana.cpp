@@ -83,13 +83,14 @@ struct glyph {
 static_assert((sizeof (glyph)) == ((sizeof (glyph_bitmap)) + (sizeof (glyph_metrics))));
 
 struct font {
+  uint32_t char_code_offset;
   uint32_t glyph_index;
   uint32_t bitmap_offset;
   int32_t height;
   int32_t max_advance;
 } __attribute__ ((packed));
 
-static_assert((sizeof (font)) == ((sizeof (uint32_t)) * 4));
+static_assert((sizeof (font)) == ((sizeof (uint32_t)) * 5));
 
 template <typename T>
 void copy(T * dst, const T * src, int32_t n) noexcept
@@ -116,6 +117,7 @@ uint32_t pixel_data(const uint32_t top, const uint8_t * glyph_bitmaps, const uin
 
 uint32_t draw_utf16_string(const uint32_t color_address,
 			   const uint32_t character_address,
+                           const uint32_t char_code_offset,
 			   const glyph * glyphs,
 			   uint32_t cmd_ix,
 			   const char16_t * string,
@@ -126,7 +128,8 @@ uint32_t draw_utf16_string(const uint32_t color_address,
 
   for (uint32_t i = 0; i < length; i++) {
     const char16_t c = string[i];
-    const uint16_t c_offset = c - 0x3000;
+    //assert(c <= char_code_offset);
+    const uint16_t c_offset = c - char_code_offset;
 
     const glyph_bitmap& bitmap = glyphs[c_offset].bitmap;
     const glyph_metrics& metrics = glyphs[c_offset].metrics;
@@ -224,6 +227,7 @@ void main()
   uint32_t cmd_ix = 2;
   cmd_ix = draw_utf16_string(color_address,
 			     character_address,
+                             font->char_code_offset,
 			     glyphs,
 			     cmd_ix,
 			     _string,
