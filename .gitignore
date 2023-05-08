@@ -8,3 +8,4 @@
 *.png
 *.out
 res/mai.data
+tools/ttf-convert

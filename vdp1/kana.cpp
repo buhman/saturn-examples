@@ -2,7 +2,7 @@
 #include "vdp2.h"
 #include "vdp1.h"
 
-extern void * _ipafont_data_start __asm("_binary_res_ipafont_bin_start");
+extern void * _ipafont_data_start __asm("_binary_res_ipapgothic_font_bin_start");
 
 constexpr inline uint16_t rgb15_gray(uint32_t intensity)
 {
@@ -11,7 +11,7 @@ constexpr inline uint16_t rgb15_gray(uint32_t intensity)
        | ((intensity & 31) << 0 ); // red
 }
 
-void color_palette(uint32_t colors, uint32_t color_bank)
+void vdp2_color_palette(uint32_t colors, uint32_t color_bank)
 {
   /* generate a palette of 32 grays */
 
@@ -80,6 +80,17 @@ struct glyph {
   glyph_metrics metrics;
 } __attribute__ ((packed));
 
+static_assert((sizeof (glyph)) == ((sizeof (glyph_bitmap)) + (sizeof (glyph_metrics))));
+
+struct font {
+  uint32_t glyph_index;
+  uint32_t bitmap_offset;
+  int32_t height;
+  int32_t max_advance;
+} __attribute__ ((packed));
+
+static_assert((sizeof (font)) == ((sizeof (uint32_t)) * 4));
+
 template <typename T>
 void copy(T * dst, const T * src, int32_t n) noexcept
 {
@@ -146,19 +157,16 @@ void main()
   constexpr uint32_t colors = 256;
   constexpr uint32_t color_bank = 0; // completely random and arbitrary value
 
-  uint8_t * data8 = reinterpret_cast<uint8_t*>(&_ipafont_data_start);
-  uint32_t * data32 = reinterpret_cast<uint32_t*>(&_ipafont_data_start);
+  uint8_t * data = reinterpret_cast<uint8_t*>(&_ipafont_data_start);
 
-  const uint32_t glyph_index = data32[0];
-  const int32_t bitmap_offset = data32[1];
-  const int32_t face_height = data32[2];  
-  const glyph * glyphs = reinterpret_cast<glyph*>(&data32[3]);
+  const font * font = reinterpret_cast<struct font*>(&data[0]);
+  const glyph * glyphs = reinterpret_cast<struct glyph*>(&data[(sizeof (struct font))]);
   // there are three 32-bit fields before the start of `glyphs`
-  const uint8_t * glyph_bitmaps = reinterpret_cast<uint8_t*>(&data8[((sizeof (int32_t)) * 3) + glyph_index * (sizeof (glyph))]);
+  const uint8_t * glyph_bitmaps = &data[(sizeof (struct font)) + ((sizeof (struct glyph)) * font->glyph_index)];
 
-  top = character_address = pixel_data(top, glyph_bitmaps, bitmap_offset);
+  top = character_address = pixel_data(top, glyph_bitmaps, font->bitmap_offset);
 
-  color_palette(colors, color_bank);
+  vdp2_color_palette(colors, color_bank);
   // For color bank color, COLR is concatenated bitwise with pixel data. See
   // Figure 6.17 in the VDP1 manual.
   color_address = color_bank << 8;
@@ -220,10 +228,10 @@ void main()
 			     cmd_ix,
 			     _string,
 			     ((sizeof (_string)) / (sizeof (_string[0]))) - 1);
-  
+
   vdp1.vram.cmd[cmd_ix].CTRL = CTRL__END;
   cmd_ix++;
-  
+
   // start drawing (execute the command list) on every frame
   vdp1.reg.PTMR = PTMR__PTM__FRAME_CHANGE;
 }
