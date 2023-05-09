@@ -60,7 +60,9 @@ smpc/input_keyboard.o: common/keyboard.hpp
 
 smpc/input_keyboard.elf: smpc/input_keyboard.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 
-games/tetris.elf: games/tetris.o sh/lib1funcs.o
+wordle/main_saturn.o: common/keyboard.hpp
+
+wordle/wordle.elf: wordle/main_saturn.o wordle/wordle.o wordle/draw.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 
 
 # clean

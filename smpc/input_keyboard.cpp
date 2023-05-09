@@ -9,6 +9,7 @@
 #include "../common/font.hpp"
 #include "../common/draw_font.hpp"
 #include "../common/palette.hpp"
+#include "../common/vdp2_func.hpp"
 
 /* begin font */
 
@@ -197,8 +198,7 @@ void smpc_int(void) {
     This intback handling is oversimplified:
 
     - up to 2 controllers may be connected
-    - controller port 1 must be connected (could relax this)
-    - both controllers must be "digital pad" controllers
+    - multitaps are not parsed correctly
    */
   while (oreg_ix < 31) {
     reg8 const& oreg = smpc.reg.oreg[oreg_ix++];
@@ -268,7 +268,7 @@ void smpc_int(void) {
         draw_font::horizontal_string(font_state,
                                      cmd_ix, // modified
                                      &str_num[0],
-                                     2,
+                                    2,
                                      qx,
                                      qy);
       }
@@ -334,17 +334,6 @@ void v_blank_in_int() {
 
     smpc.reg.COMREG = COMREG__INTBACK;
   }
-}
-
-static inline void v_blank_in() {
-  /*
-     v
-         _____
-    ____|     |____
-
-   */
-  while ((vdp2.reg.TVSTAT & TVSTAT__VBLANK) != 0);
-  while ((vdp2.reg.TVSTAT & TVSTAT__VBLANK) == 0);
 }
 
 uint32_t init_font(uint32_t top)
