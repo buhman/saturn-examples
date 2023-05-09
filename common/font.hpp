@@ -1,3 +1,8 @@
+// this file is designed to be platform-agnostic
+#pragma once
+
+#include <stdint.h>
+
 // metrics are 26.6 fixed point
 struct glyph_metrics {
   int32_t width;

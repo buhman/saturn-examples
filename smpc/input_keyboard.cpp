@@ -7,114 +7,22 @@
 
 #include "../common/keyboard.hpp"
 #include "../common/font.hpp"
+#include "../common/draw_font.hpp"
+#include "../common/palette.hpp"
 
 /* begin font */
 
 extern void * _dejavusans_start __asm("_binary_res_dejavusansmono_font_bin_start");
 
-constexpr inline uint16_t rgb15_gray(uint32_t intensity)
-{
-  return ((intensity & 31) << 10) // blue
-       | ((intensity & 31) << 5 )  // green
-       | ((intensity & 31) << 0 ); // red
-}
+/* end font */
 
-void vdp2_color_palette(uint32_t colors, uint32_t color_bank)
-{
-  /* generate a palette of 32 grays */
-
-  uint16_t * table = &vdp2.cram.u16[colors * color_bank];
-
-  for (uint32_t i = 0; i <= 31; i++) {
-    table[i] = rgb15_gray(i);
-  }
-}
-
-template <typename T>
-void copy(T * dst, const T * src, int32_t n) noexcept
-{
-  while (n > 0) {
-    *dst++ = *src++;
-    n -= (sizeof (T));
-  }
-}
+/* square stuff */
 
 struct color {
   uint8_t r;
   uint8_t g;
   uint8_t b;
 };
-
-uint32_t pixel_data(const uint32_t top, const uint8_t * glyph_bitmaps, const uint32_t bitmap_offset)
-{
-  const uint32_t * buf = reinterpret_cast<const uint32_t *>(&glyph_bitmaps[0]);
-
-  const uint32_t table_size = (bitmap_offset + 0x20 - 1) & (-0x20);
-  const uint32_t table_address = top - table_size;
-
-  uint32_t * table = &vdp1.vram.u32[(table_address / 4)];
-
-  copy<uint32_t>(table, buf, bitmap_offset);
-
-  return table_address;
-}
-
-uint32_t font_data(uint32_t top, const font ** font_out, const glyph ** glyphs_out)
-{
-  uint8_t * data = reinterpret_cast<uint8_t*>(&_dejavusans_start);
-
-  const font * font = reinterpret_cast<struct font*>(&data[0]);
-  const glyph * glyphs = reinterpret_cast<struct glyph*>(&data[(sizeof (struct font))]);
-  // there are three 32-bit fields before the start of `glyphs`
-  const uint8_t * glyph_bitmaps = &data[(sizeof (struct font)) + ((sizeof (struct glyph)) * font->glyph_index)];
-
-  top = pixel_data(top, glyph_bitmaps, font->bitmap_offset);
-
-  *font_out = font;
-  *glyphs_out = glyphs;
-
-  return top;
-}
-
-uint32_t draw_utf16_string(const uint32_t color_address,
-			   const uint32_t character_address,
-                           const uint32_t char_code_offset,
-			   const glyph * glyphs,
-			   uint32_t cmd_ix,
-			   const char16_t * string,
-			   const uint32_t length,
-                           int32_t& x,
-                           int32_t& y)
-{
-  for (uint32_t i = 0; i < length; i++) {
-    const char16_t c = string[i];
-    //assert(c <= char_code_offset);
-    const uint16_t c_offset = c - char_code_offset;
-
-    const glyph_bitmap& bitmap = glyphs[c_offset].bitmap;
-    const glyph_metrics& metrics = glyphs[c_offset].metrics;
-
-    if (bitmap.pitch != 0) {
-      vdp1.vram.cmd[cmd_ix].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__NORMAL_SPRITE;
-      vdp1.vram.cmd[cmd_ix].LINK = 0;
-      vdp1.vram.cmd[cmd_ix].PMOD = PMOD__ECD | PMOD__COLOR_MODE__COLOR_BANK_256;
-      vdp1.vram.cmd[cmd_ix].COLR = color_address; // non-palettized (rgb15) color data
-      vdp1.vram.cmd[cmd_ix].SRCA = SRCA(character_address + bitmap.offset);
-      vdp1.vram.cmd[cmd_ix].SIZE = SIZE__X(bitmap.pitch) | SIZE__Y(bitmap.rows);
-      vdp1.vram.cmd[cmd_ix].XA = (x + metrics.horiBearingX) >> 6;
-      vdp1.vram.cmd[cmd_ix].YA = (y - metrics.horiBearingY) >> 6;
-      cmd_ix++;
-    }
-
-    x += metrics.horiAdvance;
-  }
-
-  return cmd_ix;
-}
-
-/* end font */
-
-/* square stuff */
 
 const static color colors[16] = {
   {255, 255, 255}, // (SPD / transparent) 0
@@ -261,9 +169,7 @@ uint32_t print_hex(char16_t * c, uint32_t len, uint32_t n)
   return ret;
 }
 
-static uint32_t font_color_address, font_character_address;
-static const font * font;
-static const glyph * glyphs;
+static struct draw_font::state font_state;
 
 static uint32_t global_cmd_ix = 0;
 
@@ -340,11 +246,8 @@ void smpc_int(void) {
           char16_t c = keysym_to_char16(k);
           if (k != keysym::UNKNOWN && c != -1) {
             text[0] = c;
-            global_cmd_ix = draw_utf16_string(font_color_address,
-                                              font_character_address,
-                                              font->char_code_offset,
-                                              glyphs,
-                                              global_cmd_ix,
+            x += draw_font::horizontal_string(font_state,
+                                              global_cmd_ix, // modified
                                               &text[0],
                                               1,
                                               x,
@@ -362,15 +265,12 @@ void smpc_int(void) {
         int32_t qy = 150 << 6;
         uint32_t cmd_ix = 4;
 
-        cmd_ix = draw_utf16_string(font_color_address,
-                                   font_character_address,
-                                   font->char_code_offset,
-                                   glyphs,
-                                   cmd_ix,
-                                   str_num,
-                                   2,
-                                   qx,
-                                   qy);
+        draw_font::horizontal_string(font_state,
+                                     cmd_ix, // modified
+                                     &str_num[0],
+                                     2,
+                                     qx,
+                                     qy);
       }
       break;
     default:
@@ -447,26 +347,28 @@ static inline void v_blank_in() {
   while ((vdp2.reg.TVSTAT & TVSTAT__VBLANK) == 0);
 }
 
+uint32_t init_font(uint32_t top)
+{
+  // 256 is the number of colors in the color palette, not the number of grays
+  // that are used by the font.
+  constexpr uint32_t colors_per_palette = 256;
+  constexpr uint32_t color_bank_index = 0; // completely random and arbitrary value
+
+  palette::vdp2_cram_32grays(colors_per_palette, color_bank_index);
+  // For color bank color, COLR is concatenated bitwise with pixel data. See
+  // Figure 6.17 in the VDP1 manual.
+  font_state.color_address = color_bank_index << 8;
+
+  top = font_data(&_dejavusans_start, top, font_state);
+
+  return top;
+}
+
 void main()
 {
   uint32_t top = (sizeof (union vdp1_vram));
 
-  // begin font
-
-  // 256 is the number of colors in the color palette, not the number of grays
-  // that are used by the font.
-  constexpr uint32_t font_colors = 256;
-  constexpr uint32_t font_color_bank = 0; // completely random and arbitrary value
-
-  vdp2_color_palette(font_colors, font_color_bank);
-  // For color bank color, COLR is concatenated bitwise with pixel data. See
-  // Figure 6.17 in the VDP1 manual.
-  font_color_address = font_color_bank << 8;
-
-  top = font_character_address = font_data(top, &font, &glyphs);
-
-  // end font
-
+  top = init_font(top);
 
   // begin squares
 
@@ -563,23 +465,11 @@ void main()
   vdp1.vram.cmd[3].XA = foo[1].x;
   vdp1.vram.cmd[3].YA = foo[1].y;
 
-  int32_t qx = 8 << 6;
-  int32_t qy = 150 << 6;
+  vdp1.vram.cmd[4].CTRL = CTRL__END;
+  vdp1.vram.cmd[5].CTRL = CTRL__END;
 
-  uint32_t cmd_ix = 4;
-  const char16_t _xx[] = u"xx";
-  cmd_ix = draw_utf16_string(font_color_address,
-			     font_character_address,
-                             font->char_code_offset,
-			     glyphs,
-			     cmd_ix,
-			     _string,
-			     ((sizeof (_xx)) / (sizeof (_xx[0]))) - 1,
-                             qx,
-                             qy);
-
-  vdp1.vram.cmd[cmd_ix].CTRL = CTRL__END;
-  global_cmd_ix = cmd_ix;
+  vdp1.vram.cmd[6].CTRL = CTRL__END;
+  global_cmd_ix = 6;
 
   // start drawing (execute the command list) on every frame
   vdp1.reg.PTMR = PTMR__PTM__FRAME_CHANGE;

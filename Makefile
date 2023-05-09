@@ -56,7 +56,9 @@ common/keyboard.hpp: common/keyboard.py
 common/keyboard.cpp: common/keyboard.py common/keyboard.hpp
 	python common/keyboard.py definition > $@
 
-smpc/input_keyboard.elf: smpc/input_keyboard.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o
+smpc/input_keyboard.o: common/keyboard.hpp
+
+smpc/input_keyboard.elf: smpc/input_keyboard.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 
 games/tetris.elf: games/tetris.o sh/lib1funcs.o
 
