@@ -1,5 +1,6 @@
 namespace wordle {
   namespace draw {
-    void guesses(struct screen& s, void (*draw_char)(uint8_t, int32_t, int32_t));
+    void keyboard(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_t, int32_t, int32_t));
+    void guesses(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_t, int32_t, int32_t));
   }
 }

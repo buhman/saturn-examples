@@ -45,7 +45,7 @@ vdp1/normal_sprite_animated.elf: vdp1/normal_sprite_animated.o res/mai.data.o re
 smpc/input_intback.elf: smpc/input_intback.o sh/lib1funcs.o
 
 res/dejavusansmono.font.bin: tools/ttf-convert
-	./tools/ttf-convert 20 7f 32 $(shell fc-match -f '%{file}' 'DejaVu Sans Mono') $@
+	./tools/ttf-convert 20 7f 22 $(shell fc-match -f '%{file}' 'DejaVu Sans Mono') $@
 
 res/ipapgothic.font.bin: tools/ttf-convert
 	./tools/ttf-convert 3000 30ff 28 $(shell fc-match -f '%{file}' 'IPAPGothic') $@

@@ -160,6 +160,7 @@ int main(int argc, char *argv[])
   int font_size;
   ss3 << std::dec << argv[3];
   ss3 >> font_size;
+  std::cerr << "font_size: " << font_size << '\n';
 
   error = FT_Set_Pixel_Sizes (face, 0, font_size);
   if (error) {

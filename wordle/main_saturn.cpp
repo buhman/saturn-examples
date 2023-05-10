@@ -135,25 +135,26 @@ void smpc_int(void) {
 
 // rendering
 
-void draw_char(uint8_t c, int32_t x, int32_t y)
+void draw_char(uint8_t c, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
 {
-  draw_font::single_character(draw_state.font,
-                              draw_state.cmd_ix++,
-                              c,
-                              (x) << 6,
-                              (y + 30) << 6);
-
-  vdp1.vram.cmd[draw_state.cmd_ix].CTRL = CTRL__END;
+  draw_state.cmd_ix =
+    draw_font::single_character_centered(draw_state.font,
+                                         draw_state.cmd_ix,
+                                         c,
+                                         x1,
+                                         y1,
+                                         x2,
+                                         y2);
 }
 
 void render()
 {
   draw_state.cmd_ix = 2;
 
-
-  wordle_state.rows[0].letters[0] = 't';
-
   wordle::draw::guesses(wordle_state, &draw_char);
+  wordle::draw::keyboard(wordle_state, &draw_char);
+
+  vdp1.vram.cmd[draw_state.cmd_ix].CTRL = CTRL__END;
 }
 
 void v_blank_in_int(void) __attribute__ ((interrupt_handler));
@@ -216,6 +217,11 @@ void main()
 
   // wait for the beginning of a V blank
   v_blank_in();
+
+  // wordle init
+  const uint8_t word[] = "67890";
+  wordle::init_screen(wordle_state, word);
+  // end wordle init
 
   // DISP: Please make sure to change this bit from 0 to 1 during V blank.
   vdp2.reg.TVMD = ( TVMD__DISP | TVMD__LSMD__NON_INTERLACE

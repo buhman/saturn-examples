@@ -28,4 +28,6 @@ struct screen {
   uint32_t all_letters;
 };
 
+void init_screen(struct screen& s, const uint8_t * word);
+
 }
