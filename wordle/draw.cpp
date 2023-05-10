@@ -13,10 +13,10 @@ const static uint8_t layout[3][10] = {
 };
 
 
-void keyboard(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_t, int32_t, int32_t))
+void keyboard(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_t, int32_t, int32_t, enum clue))
 {
   constexpr int32_t origin_x[3] = {46, 57, 69};
-  constexpr int32_t origin_y = 170;
+  constexpr int32_t origin_y = 160;
   constexpr uint32_t rows = 3;
   constexpr uint32_t cols[3] = {10, 9, 7};
 
@@ -29,19 +29,20 @@ void keyboard(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_
       int32_t x2 = x1 + box_dim;
       int32_t y2 = y1 + box_dim;
 
-      draw_char(l, x1, y1, x2, y2);
+      int32_t l_ix = static_cast<int32_t>(l) - static_cast<int32_t>('A');
+      draw_char(l, x1, y1, x2, y2, s.clues[l_ix]);
     }
   }
 }
 
-void guesses(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_t, int32_t, int32_t))
+void guesses(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_t, int32_t, int32_t, enum clue))
 {
   // first row is at (104,23).
   // midpoint is +(10,10)
   // grid is +(13,13)
 
   constexpr int32_t origin_x = 103;
-  constexpr int32_t origin_y = 17;
+  constexpr int32_t origin_y = 12;
 
   for (uint32_t row = 0; row < wordle::guesses; row++) {
 
@@ -55,7 +56,7 @@ void guesses(struct screen const& s, void (*draw_char)(uint8_t, int32_t, int32_t
       int32_t x2 = x1 + box_dim;
       int32_t y2 = y1 + box_dim;
 
-      draw_char(l, x1, y1, x2, y2);
+      draw_char(l, x1, y1, x2, y2, r.clues[col]);
     }
   }
 }

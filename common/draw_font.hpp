@@ -56,7 +56,8 @@ uint32_t single_character_centered(state const& s,
                                    const int32_t x1, // in 26.6 fixed point
                                    const int32_t y1,
                                    const int32_t x2,
-                                   const int32_t y2)
+                                   const int32_t y2,
+                                   uint16_t color)
 {
   //assert(c <= s.char_code_offset);
   const T c_offset = c - s._font->char_code_offset;
@@ -64,12 +65,10 @@ uint32_t single_character_centered(state const& s,
   glyph_bitmap const& bitmap = s._glyphs[c_offset].bitmap;
   glyph_metrics const& metrics = s._glyphs[c_offset].metrics;
 
-  constexpr uint16_t magenta = (0x31 << 10) | (0x31 << 0);
-
   vdp1.vram.cmd[cmd_ix].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__POLYLINE;
   vdp1.vram.cmd[cmd_ix].LINK = 0;
   vdp1.vram.cmd[cmd_ix].PMOD = PMOD__ECD | PMOD__SPD;
-  vdp1.vram.cmd[cmd_ix].COLR = COLR__RGB | magenta; // non-palettized (rgb15) color data
+  vdp1.vram.cmd[cmd_ix].COLR = COLR__RGB | color; // non-palettized (rgb15) color data
   vdp1.vram.cmd[cmd_ix].XA = x1;
   vdp1.vram.cmd[cmd_ix].YA = y1;
   vdp1.vram.cmd[cmd_ix].XB = x2;

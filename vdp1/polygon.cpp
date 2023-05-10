@@ -47,7 +47,7 @@ void main()
   vdp1.vram.cmd[1].XA = 0;
   vdp1.vram.cmd[1].YA = 0;
 
-  constexpr uint16_t magenta = (0x31 << 10) | (0x31 << 0);
+  constexpr uint16_t magenta = (31 << 10) | (31 << 0);
   vdp1.vram.cmd[2].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__POLYGON;
   vdp1.vram.cmd[2].LINK = 0;
   // "Set [ECD] to '1' for polygons, polylines, and lines"

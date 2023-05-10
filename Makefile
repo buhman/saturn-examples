@@ -62,6 +62,11 @@ smpc/input_keyboard.elf: smpc/input_keyboard.o sh/lib1funcs.o res/dejavusansmono
 
 wordle/main_saturn.o: common/keyboard.hpp
 
+wordle/word_list.hpp: wordle/word_list.csv wordle/word_list.py
+	python wordle/word_list.py > $@
+
+wordle/wordle.o: wordle/word_list.hpp
+
 wordle/wordle.elf: wordle/main_saturn.o wordle/wordle.o wordle/draw.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 
 
@@ -74,4 +79,4 @@ clean-sh:
 		-regextype posix-egrep \
 		-regex '.*\.(iso|o|bin|elf|cue)$$' \
 		-exec rm {} \;
-	rm -f common/keyboard.cpp common/keyboard.hpp
+	rm -f common/keyboard.cpp common/keyboard.hpp wordle/word_list.hpp

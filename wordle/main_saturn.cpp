@@ -46,6 +46,23 @@ struct intback_state {
 static intback_state intback;
 static int oreg_ix;
 
+
+struct xorshift32_state {
+  uint32_t a;
+};
+
+uint32_t xorshift32(struct xorshift32_state *state)
+{
+  uint32_t x = state->a;
+  x ^= x << 13;
+  x ^= x >> 17;
+  x ^= x << 5;
+  return state->a = x;
+}
+
+static xorshift32_state random_state = { 0x12345678 };
+static uint32_t frame_count = 0;
+
 void smpc_int(void) __attribute__ ((interrupt_handler));
 void smpc_int(void) {
   scu.reg.IST &= ~(IST__SMPC);
@@ -71,6 +88,7 @@ void smpc_int(void) {
     - up to 2 controllers may be connected
     - multitaps are not parsed correctly
    */
+
   while (oreg_ix < 31) {
     reg8 const& oreg = smpc.reg.oreg[oreg_ix++];
     switch (intback.fsm++) {
@@ -103,7 +121,20 @@ void smpc_int(void) {
          if (kbd_bits & 0b1000) { // Make
           enum keysym k = scancode_to_keysym(keysym);
           char16_t c = keysym_to_char16(k);
-          (void)c;
+          if (k != keysym::UNKNOWN) {
+            if (c >= 'a' && c <= 'z') {
+              // uppercase
+              wordle::type_letter(wordle_state, c);
+            } else if (k == keysym::ENTER) {
+              wordle::confirm_word(wordle_state);
+            } else if (k == keysym::BACKSPACE) {
+              wordle::backspace(wordle_state);
+            } else if (k == keysym::ESC) {
+              random_state.a += frame_count;
+              uint32_t rand = xorshift32(&random_state);
+              wordle::init_screen(wordle_state, rand);
+            }
+          }
 
         } else if (kbd_bits & 0b0001) { // Break
 
@@ -135,16 +166,28 @@ void smpc_int(void) {
 
 // rendering
 
-void draw_char(uint8_t c, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
+inline constexpr uint16_t clue_color(enum wordle::clue c)
+{
+  switch (c) {
+  default:
+  case wordle::clue::exact:   return ( 0 << 10) | (31 << 5) | ( 0 << 0);
+  case wordle::clue::present: return ( 7 << 10) | (19 << 5) | (22 << 0);
+  case wordle::clue::absent:  return ( 4 << 10) | ( 4 << 5) | ( 4 << 0);
+  case wordle::clue::none:    return (14 << 10) | (14 << 5) | (14 << 0);
+  };
+}
+
+void draw_char(uint8_t l, int32_t x1, int32_t y1, int32_t x2, int32_t y2, enum wordle::clue c)
 {
   draw_state.cmd_ix =
     draw_font::single_character_centered(draw_state.font,
                                          draw_state.cmd_ix,
-                                         c,
+                                         l,
                                          x1,
                                          y1,
                                          x2,
-                                         y2);
+                                         y2,
+                                         clue_color(c));
 }
 
 void render()
@@ -161,6 +204,8 @@ void v_blank_in_int(void) __attribute__ ((interrupt_handler));
 void v_blank_in_int() {
   scu.reg.IST &= ~(IST__V_BLANK_IN);
   scu.reg.IMS = ~(IMS__SMPC | IMS__V_BLANK_IN);
+
+  frame_count++;
 
   sh2.reg.FRC.H = 0;
   sh2.reg.FRC.L = 0;
@@ -219,8 +264,8 @@ void main()
   v_blank_in();
 
   // wordle init
-  const uint8_t word[] = "67890";
-  wordle::init_screen(wordle_state, word);
+  const uint8_t word_ix = 6;
+  wordle::init_screen(wordle_state, word_ix);
   // end wordle init
 
   // DISP: Please make sure to change this bit from 0 to 1 during V blank.

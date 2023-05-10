@@ -11,3 +11,4 @@ res/mai.data
 tools/ttf-convert
 common/keyboard.cpp
 common/keyboard.hpp
+wordle/word_list.hpp
