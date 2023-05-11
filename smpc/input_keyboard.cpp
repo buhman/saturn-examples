@@ -200,9 +200,9 @@ void smpc_int(void) {
     - up to 2 controllers may be connected
     - multitaps are not parsed correctly
    */
-  while (oreg_ix < 31) {
+  while (oreg_ix < 32) {
     reg8 const& oreg = smpc.reg.oreg[oreg_ix++];
-    switch (intback.fsm++) {
+    switch (intback.fsm) {
     case PORT_STATUS:
       port_connected = (PORT_STATUS__CONNECTORS(oreg) == 1);
       if (port_connected) {
@@ -274,11 +274,10 @@ void smpc_int(void) {
       }
       break;
     default:
-      assert(0);
       break;
     }
 
-    if ((intback.fsm >= PERIPHERAL_ID && (data_size--) < 0) || intback.fsm == FSM_NEXT) {
+    if ((intback.fsm >= PERIPHERAL_ID && data_size <= 0) || intback.fsm == FSM_NEXT) {
       if (intback.port_ix == 1)
         break;
       else {
@@ -286,6 +285,9 @@ void smpc_int(void) {
         intback.controller_ix++;
         intback.fsm = PORT_STATUS;
       }
+    } else {
+      intback.fsm++;
+      data_size--;
     }
   }
 
