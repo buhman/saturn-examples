@@ -20,6 +20,9 @@ endef
 %.bin.o: %.bin
 	$(BUILD_BINARY_O)
 
+%.pcm.o: %.pcm
+	$(BUILD_BINARY_O)
+
 %.data.pal.o: %.data.pal
 	$(BUILD_BINARY_O)
 
@@ -69,6 +72,14 @@ wordle/wordle.o: wordle/word_list.hpp
 
 wordle/wordle.elf: wordle/main_saturn.o wordle/wordle.o wordle/draw.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 
+scsp/sine-44100-s16be-1ch.pcm:
+	sox \
+		-r 44100 -e signed-integer -b 16 -c 1 -n -B \
+		$@.raw \
+		synth 1 sin 440 vol -10dB
+	mv $@.raw $@
+
+scsp/slot.elf: scsp/slot.o scsp/sine-44100-s16be-1ch.pcm.o
 
 # clean
 clean: clean-sh
