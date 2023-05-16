@@ -74,6 +74,11 @@ scsp/sine-44100-s16be-1ch.pcm:
 
 scsp/slot.elf: scsp/slot.o scsp/sine-44100-s16be-1ch.pcm.o
 
+m68k:
+
+m68k/%.bin: m68k
+	$(MAKE) -C m68k $(notdir $@)
+
 scsp/sound_cpu.elf: scsp/sound_cpu.o m68k/slot.bin.o
 
 # clean
@@ -89,3 +94,6 @@ clean-sh:
 		common/keyboard.cpp \
 		common/keyboard.hpp \
 		wordle/word_list.hpp
+
+
+PHONY: m68k

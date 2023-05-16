@@ -10,7 +10,7 @@ void main()
 {
   for (long i = 0; i < 807; i++) { asm volatile ("nop"); }   // wait for (way) more than 30µs
 
-  scsp.reg.ctrl.MIXER = MIXER__MEM4MB | MIXER__DAC18B | MIXER__MVOL(0xf);
+  scsp.reg.ctrl.MIXER = MIXER__MEM4MB | MIXER__MVOL(0xf);
 
   const uint32_t sine_start = reinterpret_cast<uint32_t>(&_sine_start);
 
