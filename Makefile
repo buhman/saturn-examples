@@ -1,18 +1,11 @@
 CFLAGS = -Isaturn
 OPT = -Og
 LIBGCC = $(shell $(CC) -print-file-name=libgcc.a)
-
-all: raytracing/raytracing.iso vdp2/nbg0.iso
-
 LIB = ./saturn
-include $(LIB)/common.mk
 
-define BUILD_BINARY_O
-	$(OBJCOPY) \
-		-I binary -O elf32-sh -B sh2 \
-		--rename-section .data=.data.$(basename $@) \
-		$< $@
-endef
+all: 
+
+include $(LIB)/common.mk
 
 %.data.o: %.data
 	$(BUILD_BINARY_O)
@@ -81,6 +74,8 @@ scsp/sine-44100-s16be-1ch.pcm:
 
 scsp/slot.elf: scsp/slot.o scsp/sine-44100-s16be-1ch.pcm.o
 
+scsp/sound_cpu.elf: scsp/sound_cpu.o m68k/slot.bin.o
+
 # clean
 clean: clean-sh
 clean-sh:
@@ -90,4 +85,7 @@ clean-sh:
 		-regextype posix-egrep \
 		-regex '.*\.(iso|o|bin|elf|cue)$$' \
 		-exec rm {} \;
-	rm -f common/keyboard.cpp common/keyboard.hpp wordle/word_list.hpp
+	rm -f \
+		common/keyboard.cpp \
+		common/keyboard.hpp \
+		wordle/word_list.hpp
