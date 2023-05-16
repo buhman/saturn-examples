@@ -40,6 +40,11 @@ vdp1/normal_sprite_animated.elf: vdp1/normal_sprite_animated.o res/mai.data.o re
 
 smpc/input_intback.elf: smpc/input_intback.o sh/lib1funcs.o
 
+tools:
+
+tools/%: tools
+	$(MAKE) -C tools $(notdir $@)
+
 res/dejavusansmono.font.bin: tools/ttf-convert
 	./tools/ttf-convert 20 7f 22 $(shell fc-match -f '%{file}' 'DejaVu Sans Mono') $@
 
@@ -96,4 +101,4 @@ clean-sh:
 		wordle/word_list.hpp
 
 
-PHONY: m68k
+PHONY: m68k tools
