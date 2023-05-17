@@ -84,7 +84,9 @@ m68k:
 m68k/%.bin: m68k
 	$(MAKE) -C m68k $(notdir $@)
 
-scsp/sound_cpu.elf: scsp/sound_cpu.o m68k/slot.bin.o
+scsp/sound_cpu__slot.elf: scsp/sound_cpu__slot.o m68k/slot.bin.o
+
+scsp/sound_cpu__interrupt.elf: scsp/sound_cpu__interrupt.o m68k/interrupt.bin.o
 
 # clean
 clean: clean-sh

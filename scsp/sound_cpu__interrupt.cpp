@@ -5,8 +5,8 @@
 
 #include "../common/copy.hpp"
 
-extern void * _binary_m68k_slot_bin_start __asm("_binary_m68k_slot_bin_start");
-extern void * _binary_m68k_slot_bin_size __asm("_binary_m68k_slot_bin_size");
+extern void * _m68k_start __asm("_binary_m68k_interrupt_bin_start");
+extern void * _m68k_size __asm("_binary_m68k_interrupt_bin_size");
 
 void main()
 {
@@ -23,8 +23,8 @@ void main()
 
   scsp.reg.ctrl.MIXER = MIXER__MEM4MB;
   
-  uint32_t * m68k_main_start = (uint32_t *)&_binary_m68k_slot_bin_start;
-  uint32_t m68k_main_size = (uint32_t)&_binary_m68k_slot_bin_size;
+  uint32_t * m68k_main_start = reinterpret_cast<uint32_t*>(&_m68k_start);
+  uint32_t m68k_main_size = reinterpret_cast<uint32_t>(&_m68k_size);
   copy<uint32_t>(&scsp.ram.u32[0], m68k_main_start, m68k_main_size);
   
   while ((smpc.reg.SF & 1) != 0);
