@@ -203,7 +203,8 @@ void render()
 }
 
 void v_blank_in_int(void) __attribute__ ((interrupt_handler));
-void v_blank_in_int() {
+void v_blank_in_int()
+{
   scu.reg.IST &= ~(IST__V_BLANK_IN);
   scu.reg.IMS = ~(IMS__SMPC | IMS__V_BLANK_IN);
 
@@ -262,13 +263,13 @@ void main()
   uint32_t top = (sizeof (union vdp1_vram));
   top = init_font(top);
 
-  // wait for the beginning of a V blank
-  v_blank_in();
-
   // wordle init
   const uint8_t word_ix = 6;
   wordle::init_screen(wordle_state, word_ix);
   // end wordle init
+
+  // wait for the beginning of a V blank
+  v_blank_in();
 
   // DISP: Please make sure to change this bit from 0 to 1 during V blank.
   vdp2.reg.TVMD = ( TVMD__DISP | TVMD__LSMD__NON_INTERLACE

@@ -2,7 +2,7 @@ CFLAGS = -I../saturn
 OPT = -Og
 LIB = ../saturn
 
-all: 
+all:
 
 include $(LIB)/m68k/common.mk
 

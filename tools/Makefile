@@ -10,6 +10,11 @@ all: ttf-convert
 %: %.o
 	$(CXX) $(LDFLAGS) $< -o $@
 
-.SUFFIXES:
+clean:
+	rm -f *.o ttf-convert
 
-# /usr/share/fonts/OTF/ipagp.ttf
+.SUFFIXES:
+.INTERMEDIATE:
+.SECONDARY:
+.PHONY: all clean
+

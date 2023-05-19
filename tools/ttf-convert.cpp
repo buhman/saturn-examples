@@ -68,7 +68,7 @@ load_outline_char(const FT_Face face,
     return -1;
   }
 
-  assert(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
+  //assert(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
 
   error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
   if (error) {
@@ -79,6 +79,8 @@ load_outline_char(const FT_Face face,
   uint32_t pitch = (face->glyph->bitmap.pitch + 8 - 1) & -8;
   uint32_t bitmap_size = face->glyph->bitmap.rows * pitch;
 
+  //printf("num_grays %d\n", face->glyph->bitmap.num_grays);
+
   if (!(face->glyph->bitmap.pitch > 0)) {
     assert(pitch == 0);
     assert(bitmap_size == 0);
@@ -86,11 +88,41 @@ load_outline_char(const FT_Face face,
     assert(face->glyph->bitmap.rows == 0);
   }
 
-  for (uint32_t y = 0; y < face->glyph->bitmap.rows; y++) {
-    for (uint32_t x = 0; x < face->glyph->bitmap.width; x++) {
-      uint8_t i = face->glyph->bitmap.buffer[y * face->glyph->bitmap.pitch + x];
-      glyph_bitmaps[bitmap_offset + (y * pitch + x)] = i >> 3;
+  switch (face->glyph->bitmap.num_grays) {
+  case 2:
+    {
+      for (unsigned int y = 0; y < face->glyph->bitmap.rows; y++) {
+	uint8_t * row = &face->glyph->bitmap.buffer[y * face->glyph->bitmap.pitch];
+	//uint8_t row_out = 0;
+	for (unsigned int x = 0; x < face->glyph->bitmap.width; x++) {
+	  int bit;
+	  bit = (row[x / 8] >> (7 - (x % 8))) & 1;
+	  //fprintf(stderr, bit ? "█" : " ");
+	  //row_out |= (bit << x);
+
+	  // FIXME: this is lazy: this bloats the storage format from
+	  // 1 bit per pixel to 8 bits per pixel, even though this
+	  // expansion could be done at runtime inside vdp1 vram
+	  // instead.
+	  glyph_bitmaps[bitmap_offset + (y * pitch + x)] = bit ? 31 : 0;
+	}
+	//fprintf(stderr, "\n");
+	//buf[y] = row_out;
+      }
     }
+    break;
+  case 256:
+    {
+      for (uint32_t y = 0; y < face->glyph->bitmap.rows; y++) {
+	for (uint32_t x = 0; x < face->glyph->bitmap.width; x++) {
+	  uint8_t i = face->glyph->bitmap.buffer[y * face->glyph->bitmap.pitch + x];
+	  glyph_bitmaps[bitmap_offset + (y * pitch + x)] = i >> 3;
+	}
+      }
+    }
+    break;
+  default:
+    assert(-1 == face->glyph->bitmap.num_grays);
   }
 
   //memcpy(&glyph_bitmaps[bitmap_offset], face->glyph->bitmap.buffer, bitmap_size);
@@ -130,7 +162,7 @@ int main(int argc, char *argv[])
   FT_Face face;
   FT_Error error;
 
-  if (argc < 5) {
+  if (argc != 6) {
     std::cerr << "usage: " << argv[0] << " [start-hex] [end-hex] [pixel-size] [font-file-path] [output-file-path]\n\n";
     std::cerr << "   ex: " << argv[0] << " 3000 30ff 30 ipagp.ttf font.bin\n";
     return -1;
@@ -178,9 +210,6 @@ int main(int argc, char *argv[])
   ss2 << std::hex << argv[2];
   ss2 >> end;
 
-  //uint32_t start = 0x20;
-  //uint32_t end = 0x7f;
-
   glyph glyphs[(end - start) + 1];
   uint8_t glyph_bitmaps[1024 * 1024];
   memset(glyph_bitmaps, 0x00, 1024 * 1024);
@@ -218,6 +247,10 @@ int main(int argc, char *argv[])
   std::cerr << "glyph_index: 0x" << std::hex << glyph_index << '\n';
 
   FILE * out = fopen(argv[5], "w");
+  if (out == NULL) {
+    perror("fopen(w)");
+    return -1;
+  }
 
   fwrite(reinterpret_cast<void*>(&font), (sizeof (font)), 1, out);
   fwrite(reinterpret_cast<void*>(&glyphs[0]), (sizeof (glyph)), glyph_index, out);

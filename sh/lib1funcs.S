@@ -45,7 +45,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #if defined __vxworks && defined __PIC__
 #define NO_FPSCR_VALUES
 #endif
-	
+
 #ifdef L_ashiftrt
 	.global	GLOBAL(ashiftrt_r4_0)
 	.global	GLOBAL(ashiftrt_r4_1)
@@ -552,7 +552,7 @@ LOCAL(ashlsi_29):
 LOCAL(ashlsi_30):
 	shlr2	r0
 	rts
-	shll16	r0	
+	shll16	r0
 
 	ENDFUNC(GLOBAL(ashlsi3))
 	ENDFUNC(GLOBAL(ashlsi3_r0))
@@ -728,7 +728,7 @@ LOCAL(lshrsi_29):
 LOCAL(lshrsi_30):
 	shll2	r0
 	rts
-	shlr16	r0	
+	shlr16	r0
 
 	ENDFUNC(GLOBAL(lshrsi3))
 	ENDFUNC(GLOBAL(lshrsi3_r0))
@@ -1063,7 +1063,7 @@ GLOBAL(sdivsi3_i4):
 	fdiv	dr2,dr0
 	ftrc	dr0,fpul
 	rts
-	fpchg	
+	fpchg
 
 #endif /* __SH4A__  */
 
@@ -1722,7 +1722,7 @@ LOCAL(div_ge64k_2):
 	and r1,r0
 	bra LOCAL(div_ge64k_end)
 	xor r4,r0
-	
+
 LOCAL(div_r8):
 	shll16 r4
 	bra LOCAL(div_r8_2)
@@ -2257,7 +2257,7 @@ GLOBAL(udiv_qrnnd_16):
 	cmp/hi r6,r0
 	bt .Lots
 	.rept 16
-	div1 r6,r0 
+	div1 r6,r0
 	.endr
 	extu.w r0,r1
 	bt 0f

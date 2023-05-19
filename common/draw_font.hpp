@@ -14,12 +14,13 @@ struct state {
 uint32_t font_data(void * buf, uint32_t top, state& state);
 
 template <typename T>
-uint32_t horizontal_string(state const& s,
-                           uint32_t& cmd_ix,
-                           const T * string,
-                           const uint32_t length,
-                           const int32_t x,
-                           const int32_t y)
+inline
+int32_t horizontal_string(state const& s,
+			  uint32_t& cmd_ix,
+			  const T * string,
+			  const uint32_t length,
+			  const int32_t x,
+			  const int32_t y)
 {
   int32_t total_advance = 0;
 
@@ -50,6 +51,7 @@ uint32_t horizontal_string(state const& s,
 }
 
 template <typename T>
+inline
 uint32_t single_character_centered(state const& s,
                                    uint32_t cmd_ix,
                                    const T c,

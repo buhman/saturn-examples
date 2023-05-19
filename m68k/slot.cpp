@@ -15,7 +15,7 @@ void main()
   scsp_slot& slot = scsp.reg.slot[0];
   slot.LOOP = 0;
   slot.LOOP |= LOOP__KYONEX;
-  
+
   slot.LOOP = LOOP__KYONB | LOOP__LPCTL__NORMAL | LOOP__SA(sine_start); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:16]
   slot.SA = SA__SA(sine_start); // start address (bytes)
   slot.LSA = 0; // loop start address (samples)

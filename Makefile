@@ -3,7 +3,7 @@ OPT = -Og
 LIBGCC = $(shell $(CC) -print-file-name=libgcc.a)
 LIB = ./saturn
 
-all: 
+all:
 
 include $(LIB)/common.mk
 
@@ -51,6 +51,9 @@ res/dejavusansmono.font.bin: tools/ttf-convert
 res/ipapgothic.font.bin: tools/ttf-convert
 	./tools/ttf-convert 3000 30ff 28 $(shell fc-match -f '%{file}' 'IPAPGothic') $@
 
+res/sperrypc.font.bin: tools/ttf-convert
+	./tools/ttf-convert 20 7f 8 res/Bm437_SperryPC_CGA.otb $@
+
 common/keyboard.hpp: common/keyboard.py
 	python common/keyboard.py header > $@
 
@@ -86,7 +89,7 @@ m68k/%.bin: m68k
 
 scsp/sound_cpu__slot.elf: scsp/sound_cpu__slot.o m68k/slot.bin.o
 
-scsp/sound_cpu__interrupt.elf: scsp/sound_cpu__interrupt.o m68k/interrupt.bin.o
+scsp/sound_cpu__interrupt.elf: scsp/sound_cpu__interrupt.o m68k/interrupt.bin.o sh/lib1funcs.o res/sperrypc.font.bin.o common/draw_font.o common/palette.o
 
 # clean
 clean: clean-sh
@@ -101,6 +104,7 @@ clean-sh:
 		common/keyboard.cpp \
 		common/keyboard.hpp \
 		wordle/word_list.hpp
-
+	make -C tools clean
+	make -C m68k clean
 
 PHONY: m68k tools
