@@ -243,7 +243,7 @@ void smpc_int(void) {
           print_hex(str_num, 2, keysym);
 
           enum keysym k = scancode_to_keysym(keysym);
-          char16_t c = keysym_to_char16(k);
+          int32_t c = keysym_to_char(k, false);
           if (k != keysym::UNKNOWN && c != -1) {
             text[0] = c;
             x += draw_font::horizontal_string(font_state,

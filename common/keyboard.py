@@ -20,7 +20,8 @@ def parse_printable():
         for line in f:
             if not line.strip():
                 continue
-            yield line.strip().split()
+            k, v1, v2 = line.strip().split()
+            yield k, (v1, v2)
 
 
 scancodes = set()
@@ -46,7 +47,15 @@ keymap = build_keymap()
 
 
 printable = dict(parse_printable())
-printable["SPACE"] = ' '
+printable["SPACE"] = (' ', ' ')
+
+def e(s):
+    if s == '\\':
+        return '\\\\'
+    elif s == '\'':
+        return '\\\''
+    else:
+        return s
 
 import sys
 if sys.argv[1] == "header":
@@ -62,8 +71,9 @@ if sys.argv[1] == "header":
     print()
 
     print("enum keysym scancode_to_keysym(uint32_t scancode);")
-    print("char16_t keysym_to_char16(enum keysym k);")
+    print("int32_t keysym_to_char(enum keysym k, bool shift);")
 
+    
 if sys.argv[1] == "definition":
     print("#include <stdint.h>")
     print("#include \"keyboard.hpp\"")
@@ -81,15 +91,38 @@ if sys.argv[1] == "definition":
     print()
 
 
-    print("char16_t keysym_to_char16(enum keysym k)")
+    print("static constexpr inline int32_t unshift_char(enum keysym k)")
     print("{")
     print("  switch(k) {")
     for keysym, _ in keymap:
         if keysym in printable:
             value = printable[keysym]
-            if value == '\\':
-                value = '\\\\';
-            print(f"  case keysym::{keysym}: return '{value}';")
+            print(f"  case keysym::{keysym}: return '{e(value[0])}';")
     print("  default: return -1;")
     print("  }")
     print("}")
+
+    print()
+
+    print("static constexpr inline int32_t shift_char(enum keysym k)")
+    print("{")
+    print("  switch(k) {")
+    for keysym, _ in keymap:
+        if keysym in printable:
+            value = printable[keysym]
+            print(f"  case keysym::{keysym}: return '{e(value[1])}';")
+    print("  default: return -1;")
+    print("  }")
+    print("}")
+
+    print()
+    
+    print("""int32_t keysym_to_char(enum keysym k, bool shift)
+{
+  if (shift) {
+    return shift_char(k);
+  } else {
+    return unshift_char(k);
+  }
+}
+""")

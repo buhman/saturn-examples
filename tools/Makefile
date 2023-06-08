@@ -2,7 +2,7 @@ CFLAGS = -Og -Wall -Wextra -Werror -ggdb -Wno-error=unused-parameter -Wno-error=
 CFLAGS += $(shell pkg-config --cflags freetype2)
 LDFLAGS = $(shell pkg-config --libs freetype2)
 
-all: ttf-convert
+all: ttf-convert ttf-bitmap
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@
@@ -11,7 +11,7 @@ all: ttf-convert
 	$(CXX) $(LDFLAGS) $< -o $@
 
 clean:
-	rm -f *.o ttf-convert
+	rm -f *.o ttf-convert ttf-bitmap
 
 .SUFFIXES:
 .INTERMEDIATE:

@@ -10,6 +10,7 @@
 #include "../common/draw_font.hpp"
 #include "../common/palette.hpp"
 #include "../common/vdp2_func.hpp"
+#include "../common/intback.hpp"
 
 #include "wordle.hpp"
 #include "draw.hpp"
@@ -24,28 +25,6 @@ struct draw_state {
 static struct draw_state draw_state;
 
 static struct wordle::screen wordle_state;
-
-#define assert(n) if ((n) == 0) while (1);
-
-enum intback_fsm {
-  PORT_STATUS = 0,
-  PERIPHERAL_ID,
-  DATA1,
-  DATA2,
-  DATA3,
-  DATA4,
-  FSM_NEXT
-};
-
-struct intback_state {
-  int fsm;
-  int controller_ix;
-  int port_ix;
-};
-
-static intback_state intback;
-static int oreg_ix;
-
 
 struct xorshift32_state {
   uint32_t a;
@@ -63,107 +42,36 @@ uint32_t xorshift32(struct xorshift32_state *state)
 static xorshift32_state random_state = { 0x12345678 };
 static uint32_t frame_count = 0;
 
+void keyboard_callback(const enum keysym k, uint8_t kbd_bits)
+{
+  if (!KEYBOARD__MAKE(kbd_bits))
+    return;
+
+  int32_t c = keysym_to_char(k, false);
+  if (k == keysym::UNKNOWN)
+    return;
+    
+  if (c >= 'a' && c <= 'z') {
+    // uppercase
+    wordle::type_letter(wordle_state, c);
+  } else if (k == keysym::ENTER) {
+    wordle::confirm_word(wordle_state);
+  } else if (k == keysym::BACKSPACE) {
+    wordle::backspace(wordle_state);
+  } else if (k == keysym::ESC) {
+    random_state.a += frame_count;
+    uint32_t rand = xorshift32(&random_state);
+    wordle::init_screen(wordle_state, rand);
+  }
+}
+
 void smpc_int(void) __attribute__ ((interrupt_handler));
-void smpc_int(void) {
+void smpc_int(void)
+{
   scu.reg.IST &= ~(IST__SMPC);
   scu.reg.IMS = ~(IMS__SMPC | IMS__V_BLANK_IN);
 
-  if ((smpc.reg.SR & SR__PDL) != 0) {
-    // PDL == 1; 1st peripheral data
-    oreg_ix = 0;
-    intback.controller_ix = 0;
-    intback.port_ix = 0;
-    intback.fsm = PORT_STATUS;
-  }
-
-  int port_connected = 0;
-  int data_size = 0;
-  int peripheral_type = 0;
-  (void)peripheral_type;
-  int kbd_bits = 0;
-
-  /*
-    This intback handling is oversimplified:
-
-    - up to 2 controllers may be connected
-    - multitaps are not parsed correctly
-   */
-
-  while (oreg_ix < 32) {
-    reg8 const& oreg = smpc.reg.oreg[oreg_ix++];
-    switch (intback.fsm) {
-    case PORT_STATUS:
-      port_connected = (PORT_STATUS__CONNECTORS(oreg) == 1);
-      if (port_connected) {
-        assert(PORT_STATUS__MULTITAP_ID(oreg) == 0xf);
-      } else {
-        intback.fsm = FSM_NEXT;
-      }
-      break;
-    case PERIPHERAL_ID:
-      peripheral_type = PERIPHERAL_ID__TYPE(oreg);
-      data_size = PERIPHERAL_ID__DATA_SIZE(oreg);
-      break;
-    case DATA1:
-      {
-        //controller_state& c = intback.controller[intback.controller_ix];
-      }
-      break;
-    case DATA2:
-      break;
-    case DATA3:
-      kbd_bits = oreg & 0b1111;
-      break;
-    case DATA4:
-      {
-        uint32_t keysym = oreg;
-
-         if (kbd_bits & 0b1000) { // Make
-          enum keysym k = scancode_to_keysym(keysym);
-          char16_t c = keysym_to_char16(k);
-          if (k != keysym::UNKNOWN) {
-            if (c >= 'a' && c <= 'z') {
-              // uppercase
-              wordle::type_letter(wordle_state, c);
-            } else if (k == keysym::ENTER) {
-              wordle::confirm_word(wordle_state);
-            } else if (k == keysym::BACKSPACE) {
-              wordle::backspace(wordle_state);
-            } else if (k == keysym::ESC) {
-              random_state.a += frame_count;
-              uint32_t rand = xorshift32(&random_state);
-              wordle::init_screen(wordle_state, rand);
-            }
-          }
-
-        } else if (kbd_bits & 0b0001) { // Break
-
-        }
-      }
-      break;
-    default:
-      break;
-    }
-
-    if ((intback.fsm >= PERIPHERAL_ID && data_size <= 0) || intback.fsm == FSM_NEXT) {
-      if (intback.port_ix == 1)
-        break;
-      else {
-        intback.port_ix++;
-        intback.controller_ix++;
-        intback.fsm = PORT_STATUS;
-      }
-    } else {
-      intback.fsm++;
-      data_size--;
-    }
-  }
-
-  if ((smpc.reg.SR & SR__NPE) != 0) {
-    smpc.reg.ireg[0] = INTBACK__IREG0__CONTINUE;
-  } else {
-    smpc.reg.ireg[0] = INTBACK__IREG0__BREAK;
-  }
+  intback::keyboard_fsm(keyboard_callback);
 }
 
 // rendering

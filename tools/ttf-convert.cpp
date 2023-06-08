@@ -11,47 +11,6 @@
 
 #include "../common/font.hpp"
 
-/*
-int load_bitmap_char(FT_Face face, FT_ULong char_code, uint8_t * buf)
-{
-  FT_Error error;
-  FT_UInt glyph_index = FT_Get_Char_Index(face, char_code);
-
-  error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
-  if (error) {
-    printf("FT_Load_Glyph %s\n", FT_Error_String(error));
-    return 0;
-  }
-
-  assert(face->glyph->format == FT_GLYPH_FORMAT_BITMAP);
-  printf("num_grays %d\n", face->glyph->bitmap.num_grays);
-  printf("pitch %d\n", face->glyph->bitmap.pitch);
-  printf("width %d\n", face->glyph->bitmap.width);
-  assert(face->glyph->bitmap.width == 16);
-  printf("char_code %lx rows %d\n", char_code, face->glyph->bitmap.rows);
-  assert(face->glyph->bitmap.rows == 8 || (face->glyph->bitmap.rows % 8) == 0);
-
-  for (int y = 0; y < (int)face->glyph->bitmap.rows; y++) {
-    uint8_t * row = &face->glyph->bitmap.buffer[y * face->glyph->bitmap.pitch];
-    uint8_t row_out = 0;
-    for (int x = 0; x < face->glyph->bitmap.width; x++) {
-      int bit;
-      if (x < (int)face->glyph->bitmap.width) {
-        bit = (row[x / 8] >> (7 - (x % 8))) & 1;
-      } else {
-        bit = 0;
-      }
-      fprintf(stderr, bit ? "█" : " ");
-      row_out |= (bit << x);
-    }
-    fprintf(stderr, "\n");
-    //buf[y] = row_out;
-  }
-
-  return face->glyph->bitmap.rows * face->glyph->bitmap.pitch;
-}
-*/
-
 int32_t
 load_outline_char(const FT_Face face,
                   const FT_ULong char_code,
@@ -180,21 +139,13 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  /*
-  error = FT_Select_Size(face, 0);
-  if (error) {
-    fprintf(stderr, "FT_Select_Size: %s %d\n", FT_Error_String(error), error);
-    return -1;
-  }
-  */
-
   std::stringstream ss3;
   int font_size;
   ss3 << std::dec << argv[3];
   ss3 >> font_size;
   std::cerr << "font_size: " << font_size << '\n';
 
-  error = FT_Set_Pixel_Sizes (face, 0, font_size);
+  error = FT_Set_Pixel_Sizes(face, 0, font_size);
   if (error) {
     std::cerr << "FT_Set_Pixel_Sizes: " << FT_Error_String(error) << error << '\n';
     return -1;

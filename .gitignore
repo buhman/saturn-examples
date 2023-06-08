@@ -9,6 +9,7 @@
 *.out
 res/mai.data
 tools/ttf-convert
+tools/ttf-bitmap
 common/keyboard.cpp
 common/keyboard.hpp
 wordle/word_list.hpp

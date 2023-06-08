@@ -91,6 +91,13 @@ scsp/sound_cpu__slot.elf: scsp/sound_cpu__slot.o m68k/slot.bin.o
 
 scsp/sound_cpu__interrupt.elf: scsp/sound_cpu__interrupt.o m68k/interrupt.bin.o sh/lib1funcs.o res/sperrypc.font.bin.o common/draw_font.o common/palette.o
 
+res/sperrypc.bitmap.bin: tools/ttf-bitmap
+	./tools/ttf-bitmap 20 7f res/Bm437_SperryPC_CGA.otb $@
+
+editor/main_saturn.o: common/keyboard.hpp editor/editor.hpp
+
+editor/main_saturn.elf: editor/main_saturn.o res/sperrypc.bitmap.bin.o sh/lib1funcs.o common/keyboard.o saturn/start.o
+
 # clean
 clean: clean-sh
 clean-sh:
