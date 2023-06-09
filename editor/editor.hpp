@@ -18,6 +18,11 @@ struct cursor {
   int32_t col;
 };
 
+enum struct mode {
+  normal,
+  mark
+};
+
 template <int C, int R>
 struct buffer {
   line<C> row[R];
@@ -31,6 +36,8 @@ struct buffer {
     int32_t left;
   } window;
   struct cursor cursor;
+  struct cursor mark;
+  enum mode mode;
 
   typedef line<C> line_type;
 
@@ -49,6 +56,8 @@ struct buffer {
   inline constexpr bool cursor_home();
   inline constexpr bool cursor_end();
   inline constexpr bool enter();
+  inline constexpr void set_mark();
+  inline constexpr void quit();
 private:
   inline constexpr void scroll_left();
   inline constexpr void scroll_right();
@@ -217,7 +226,7 @@ inline constexpr bool buffer<C, R>::cursor_right()
   line<C> const * const l = this->lines[cur.row];
   int32_t length = (l == nullptr) ? 0 : l->length;
   if (cur.col >= length) {
-    if (cur.row >= this->length)
+    if (cur.row >= (this->length - 1))
       return false;
 
     cur.row++;
@@ -256,7 +265,7 @@ inline constexpr bool buffer<C, R>::cursor_down()
 {
   struct cursor& cur = this->cursor;
 
-  if (cur.row >= this->length)
+  if (cur.row >= (this->length - 1))
     return false;
 
   cur.row++;
@@ -305,7 +314,7 @@ inline constexpr bool buffer<C, R>::enter()
   if (cur.row >= R || cur.row < 0)
     return false;
 
-  if (this->length > cur.row) {
+  if ((this->length - 1) > cur.row) {
     // first, move all lines down one
     int32_t n_lines = this->length - (cur.row + 1);
     // don't care about nullptr here, this never dereferences
@@ -336,6 +345,20 @@ inline constexpr bool buffer<C, R>::enter()
   // incremented here.
   this->length++;
   return true;
+}
+
+template <int C, int R>
+inline constexpr void buffer<C, R>::set_mark()
+{
+  this->mark.row = this->cursor.row;
+  this->mark.col = this->cursor.col;
+  this->mode = mode::mark;
+}
+
+template <int C, int R>
+inline constexpr void buffer<C, R>::quit()
+{
+  this->mode = mode::normal;
 }
 
 template <int C, int R>

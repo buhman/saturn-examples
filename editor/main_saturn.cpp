@@ -20,13 +20,21 @@ constexpr int32_t viewport_max_row = 240 / 8;
 
 static buffer_type buffer {viewport_max_col, viewport_max_row};
 
+constexpr inline uint16_t rgb15(int32_t r, int32_t g, int32_t b)
+{
+  return ((b & 31) << 10) | ((g & 31) << 5) | ((r & 31) << 0);
+}
+
 void palette_data()
 {
-  vdp2.cram.u16[1 + 0 ] = 0;
-  vdp2.cram.u16[2 + 0 ] = 0x7fff;
+  vdp2.cram.u16[1 + 0 ] = rgb15( 0,  0,  0);
+  vdp2.cram.u16[2 + 0 ] = rgb15(31, 31, 31);
 
-  vdp2.cram.u16[1 + 16] = 0x7fff;
-  vdp2.cram.u16[2 + 16] = 0;
+  vdp2.cram.u16[1 + 16] = rgb15(31, 31, 31);
+  vdp2.cram.u16[2 + 16] = rgb15( 0,  0,  0);
+
+  vdp2.cram.u16[1 + 32] = rgb15(15, 15, 15);
+  vdp2.cram.u16[2 + 32] = rgb15(31, 31, 31);
 }
 
 namespace pix_fmt_4bpp
@@ -64,42 +72,103 @@ void cell_data()
   }
 }
 
-struct modifiers {
-  uint8_t left_shift;
-  uint8_t right_shift;
+enum modifier {
+  MODIFIER_NONE = 0,
+  MODIFIER_LEFT_SHIFT = (1 << 0),
+  MODIFIER_RIGHT_SHIFT = (1 << 1),
+  MODIFIER_BOTH_SHIFT = MODIFIER_LEFT_SHIFT | MODIFIER_RIGHT_SHIFT,
+  MODIFIER_LEFT_CTRL = (1 << 2),
+  MODIFIER_RIGHT_CTRL = (1 << 3),
+  MODIFIER_BOTH_CTRL = MODIFIER_LEFT_CTRL | MODIFIER_RIGHT_CTRL,
+  MODIFIER_LEFT_ALT = (1 << 4),
+  MODIFIER_RIGHT_ALT = (1 << 5),
+  MODIFIER_BOTH_ALT = MODIFIER_LEFT_ALT | MODIFIER_RIGHT_ALT,
 };
 
-static modifiers modifier_state = { 0 };
+static uint32_t modifier_state = 0;
+
+inline void keyboard_regular_key(const enum keysym k)
+{
+  switch (modifier_state) {
+  case MODIFIER_NONE:
+    switch (k) {
+    case keysym::BACKSPACE  : buffer.backspace(); break;
+    case keysym::ARROW_LEFT : buffer.cursor_left(); break;
+    case keysym::ARROW_RIGHT: buffer.cursor_right(); break;
+    case keysym::ARROW_UP   : buffer.cursor_up(); break;
+    case keysym::ARROW_DOWN : buffer.cursor_down(); break;
+    case keysym::HOME       : buffer.cursor_home(); break;
+    case keysym::END        : buffer.cursor_end(); break;
+    case keysym::ENTER      : buffer.enter(); break;
+    default:
+      {
+	uint8_t c = keysym_to_char(k, false);
+	if (c != -1) buffer.put(c);
+      }
+      break;
+    }
+    break;
+
+  case MODIFIER_LEFT_SHIFT: [[fallthrough]];
+  case MODIFIER_RIGHT_SHIFT: [[fallthrough]];
+  case MODIFIER_BOTH_SHIFT:
+    switch (k) {
+    default:
+      {
+	uint8_t c = keysym_to_char(k, true);
+	if (c != -1) buffer.put(c);
+      }
+      break;
+    }
+    break;
+
+  case MODIFIER_LEFT_CTRL: [[fallthrough]];
+  case MODIFIER_RIGHT_CTRL: [[fallthrough]];
+  case MODIFIER_BOTH_CTRL:
+    switch (k) {
+    case keysym::SPACE : buffer.set_mark(); break;
+    case keysym::G     : buffer.quit(); break;
+    case keysym::B     : buffer.cursor_left(); break;
+    case keysym::F     : buffer.cursor_right(); break;
+    case keysym::P     : buffer.cursor_up(); break;
+    case keysym::N     : buffer.cursor_down(); break;
+    case keysym::A     : buffer.cursor_home(); break;
+    case keysym::E     : buffer.cursor_end(); break;
+    default: break;
+    }
+    break;
+
+  case MODIFIER_LEFT_ALT: [[fallthrough]];
+  case MODIFIER_RIGHT_ALT: [[fallthrough]];
+  case MODIFIER_BOTH_ALT:
+    break;
+
+  default: break;
+  }
+}
 
 void keyboard_callback(const enum keysym k, uint8_t kbd_bits)
 {
-  int32_t shift = modifier_state.left_shift || modifier_state.right_shift;
-  int32_t c = keysym_to_char(k, shift);
   if (KEYBOARD__MAKE(kbd_bits)) {
-    if (k == keysym::UNKNOWN)
-      return;
-
-    if (c != -1) {
-      buffer.put(c);
-    } else {
-      switch (k) {
-      case keysym::BACKSPACE  : buffer.backspace(); break;
-      case keysym::ARROW_LEFT : buffer.cursor_left(); break;
-      case keysym::ARROW_RIGHT: buffer.cursor_right(); break;
-      case keysym::ARROW_UP   : buffer.cursor_up(); break;
-      case keysym::ARROW_DOWN : buffer.cursor_down(); break;
-      case keysym::HOME       : buffer.cursor_home(); break;
-      case keysym::END        : buffer.cursor_end(); break;
-      case keysym::ENTER      : buffer.enter(); break;
-      case keysym::LEFT_SHIFT : modifier_state.left_shift = 1; break;
-      case keysym::RIGHT_SHIFT: modifier_state.right_shift = 1; break;
-      default: break;
-      }
+    switch (k) {
+    case keysym::LEFT_SHIFT : modifier_state |= MODIFIER_LEFT_SHIFT; break;
+    case keysym::RIGHT_SHIFT: modifier_state |= MODIFIER_RIGHT_SHIFT; break;
+    case keysym::LEFT_CTRL  : modifier_state |= MODIFIER_LEFT_CTRL; break;
+    case keysym::RIGHT_CTRL : modifier_state |= MODIFIER_RIGHT_CTRL; break;
+    case keysym::LEFT_ALT   : modifier_state |= MODIFIER_LEFT_ALT; break;
+    case keysym::RIGHT_ALT  : modifier_state |= MODIFIER_RIGHT_ALT; break;
+    default:
+      keyboard_regular_key(k);
+      break;
     }
   } else if (KEYBOARD__BREAK(kbd_bits)) {
     switch (k) {
-    case keysym::LEFT_SHIFT : modifier_state.left_shift = 0; break;
-    case keysym::RIGHT_SHIFT: modifier_state.right_shift = 0; break;
+    case keysym::LEFT_SHIFT : modifier_state &= ~(MODIFIER_LEFT_SHIFT); break;
+    case keysym::RIGHT_SHIFT: modifier_state &= ~(MODIFIER_RIGHT_SHIFT); break;
+    case keysym::LEFT_CTRL  : modifier_state &= ~(MODIFIER_LEFT_CTRL); break;
+    case keysym::RIGHT_CTRL : modifier_state &= ~(MODIFIER_RIGHT_CTRL); break;
+    case keysym::LEFT_ALT   : modifier_state &= ~(MODIFIER_LEFT_ALT); break;
+    case keysym::RIGHT_ALT  : modifier_state &= ~(MODIFIER_RIGHT_ALT); break;
     default: break;
     }
   }
