@@ -630,6 +630,8 @@ inline constexpr bool buffer<C, R>::shadow_copy()
 		sel.max->col); // col_end_ix
   }
 
+  this->mode = mode::normal;
+
   return true;
 }
 
@@ -639,11 +641,10 @@ inline constexpr bool buffer<C, R>::shadow_cut()
   if (this->mode != mode::mark)
     return false;
 
+  // copy unsets mode::mark
   this->shadow_copy();
 
   this->mark_delete();
-
-  this->mode = mode::normal;
 
   return true;
 }
