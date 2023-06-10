@@ -561,6 +561,176 @@ void test_selection_delete()
   assert(b.lines[2]->buf[3] == 'r');
 }
 
+void test_shadow_paste_oneline()
+{
+  buffer<8, 8> b {4, 2};
+
+  b.put('q');
+  b.put('w');
+  b.put('r');
+  b.mark_set();
+  b.cursor_home();
+  b.shadow_copy();
+  b.mark_delete();
+  assert(decltype(b)::line_length(b.lines[0]) == 0);
+  assert(b.cursor.col == 0);
+
+  b.put('a');
+  b.put('b');
+  b.put('c');
+  b.put('d');
+  b.put('e');
+
+  b.cursor_left();
+  b.cursor_left();
+  b.cursor_left();
+
+  // (qwr)
+  // 01234567
+  // abCde
+  // abqwrCde
+
+  assert(decltype(b)::line_length(b.lines[0]) == 5);
+  b.shadow_paste();
+  assert(decltype(b)::line_length(b.lines[0]) == 8);
+  assert(b.lines[0]->buf[0] == 'a');
+  assert(b.lines[0]->buf[1] == 'b');
+  assert(b.lines[0]->buf[2] == 'q');
+  assert(b.lines[0]->buf[3] == 'w');
+  assert(b.lines[0]->buf[4] == 'r');
+  assert(b.lines[0]->buf[5] == 'c');
+  assert(b.lines[0]->buf[6] == 'd');
+  assert(b.lines[0]->buf[7] == 'e');
+
+  // also handles these other cases:
+  // abc|
+  // abcqwr
+
+  // |
+  // qwr (cow)
+  b.decref(b.lines[0]);
+  b.cursor_home();
+  assert(b.shadow.lines[0]->buf[0] == 'q');
+  assert(b.shadow.lines[0]->buf[1] == 'w');
+  assert(b.shadow.lines[0]->buf[2] == 'r');
+
+  b.put('a');
+  b.put('b');
+  b.put('c');
+  assert(decltype(b)::line_length(b.lines[0]) == 3);
+  b.shadow_paste();
+  assert(decltype(b)::line_length(b.lines[0]) == 6);
+  assert(b.lines[0]->buf[0] == 'a');
+  assert(b.lines[0]->buf[1] == 'b');
+  assert(b.lines[0]->buf[2] == 'c');
+  assert(b.lines[0]->buf[3] == 'q');
+  assert(b.lines[0]->buf[4] == 'w');
+  assert(b.lines[0]->buf[5] == 'r');
+
+  b.decref(b.lines[0]);
+  b.cursor_home();
+
+  b.shadow_paste();
+  assert(b.lines[0] == b.shadow.lines[0]);
+}
+
+void test_shadow_paste_multiline()
+{
+  buffer<8, 8> b {4, 2};
+
+  // (qw
+  //  er
+  //  gh)
+  //
+  // jklopr
+  // aBcd
+  // zyx (2)
+  //
+  // jklopr
+  // aqw
+  // er (cow)
+  // ghBcd
+  // zyx (4)
+
+  b.put('q');
+  b.put('w');
+  b.enter();
+  b.put('e');
+  b.put('r');
+  b.enter();
+  b.put('g');
+  b.put('h');
+  b.mark_set();
+  b.cursor_home();
+  b.cursor_up();
+  b.cursor_up();
+  assert(b.cursor.row == 0);
+  assert(b.cursor.col == 0);
+  b.shadow_copy();
+  b.mark_delete();
+  assert(b.shadow.length == 3);
+  assert(decltype(b)::line_length(b.shadow.lines[0]) == 2);
+  assert(decltype(b)::line_length(b.shadow.lines[1]) == 2);
+  assert(decltype(b)::line_length(b.shadow.lines[2]) == 2);
+  assert(b.length == 1);
+  assert(decltype(b)::line_length(b.lines[0]) == 0);
+
+  // jkl
+  // aBcd
+  // zyx
+
+  b.put('j');
+  b.put('k');
+  b.put('l');
+  b.put('o');
+  b.put('p');
+  b.put('r');
+  b.enter();
+  b.put('a');
+  b.put('b');
+  b.put('c');
+  b.put('d');
+  b.enter();
+  b.put('z');
+  b.put('y');
+  b.put('x');
+  b.cursor_home();
+  b.cursor_up();
+  b.cursor_right();
+  assert(b.cursor.row == 1);
+  assert(b.cursor.col == 1);
+
+  b.shadow_paste();
+
+  // jklopr
+  // aqw
+  // er (cow)
+  // ghBcd
+  // zyx (4)
+
+  assert(b.length == 5);
+  assert(b.lines[0]->length == 6);
+  assert(b.lines[1]->length == 3);
+  assert(b.lines[2]->length == 2);
+  assert(b.lines[3]->length == 5);
+  assert(b.lines[4]->length == 3);
+
+  assert(b.lines[1]->buf[0] == 'a');
+  assert(b.lines[1]->buf[1] == 'q');
+  assert(b.lines[1]->buf[2] == 'w');
+  assert(b.lines[2] == b.shadow.lines[1]);
+  assert(b.lines[2]->buf[0] == 'e');
+  assert(b.lines[2]->buf[1] == 'r');
+  assert(b.lines[3]->buf[0] == 'g');
+  assert(b.lines[3]->buf[1] == 'h');
+  assert(b.lines[3]->buf[2] == 'b');
+  assert(b.lines[3]->buf[3] == 'c');
+  assert(b.lines[3]->buf[4] == 'd');
+  assert(b.lines[4]->buf[0] == 'z');
+  assert(b.lines[4]->buf[1] == 'y');
+  assert(b.lines[4]->buf[2] == 'x');
+}
+
 int main()
 {
   test_allocate();
@@ -577,14 +747,8 @@ int main()
   test_copy_multi_line_offset();
   test_delete_from_line();
   test_selection_delete();
-
-  editor::buffer<64, 12 * 1024> b {0, 0};
-  std::cerr << "size: " << (sizeof (b)) << '\n';
-  std::cerr << "  row: " << (sizeof (b.row)) << '\n';
-  std::cerr << "  lines: " << (sizeof (b.lines)) << '\n';
-  std::cerr << "  offsetof lines[1]: " << (reinterpret_cast<uint8_t*>(&b.lines[1]) -
-					   reinterpret_cast<uint8_t*>(&b.lines[0])) << '\n';
-  std::cerr << "  shadow.lines: " << (sizeof (b.shadow.lines)) << '\n';
+  test_shadow_paste_oneline();
+  test_shadow_paste_multiline();
 
   return 0;
 }

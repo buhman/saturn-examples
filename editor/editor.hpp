@@ -10,8 +10,8 @@ namespace editor {
 template <int C>
 struct line {
   uint8_t buf[C];
-  int16_t length;
-  int16_t refcount;
+  int32_t length;
+  int32_t refcount;
 
   static_assert(C < 32768);
 };
@@ -106,6 +106,11 @@ struct buffer {
 				    const int32_t col_end_ix);
   inline constexpr bool shadow_copy();
   inline constexpr bool shadow_cut();
+  inline constexpr void overwrite_line(line<C> *& dst,
+				       const int32_t dst_col,
+				       line<C> * src,
+				       const int32_t src_col);
+  inline constexpr bool shadow_paste();
   inline constexpr void scroll_left();
   inline constexpr void scroll_right();
   inline constexpr void scroll_up();
@@ -237,6 +242,7 @@ template <int C, int R>
 inline constexpr bool buffer<C, R>::backspace()
 {
   if (this->mode == mode::mark) {
+    this->mode = mode::normal;
     return mark_delete();
   }
 
@@ -266,8 +272,8 @@ inline constexpr bool buffer<C, R>::backspace()
     //    c
     // 01234
     line<C> * l = mutref(this->lines[cur.row]);
-    auto length = l->length - cur.col;
-    if (length > 0) move(&l->buf[cur.col-1], &l->buf[cur.col], length);
+    int32_t length = l->length - cur.col;
+    move(&l->buf[cur.col-1], &l->buf[cur.col], length);
 
     cur.col--;
     scroll_left();
@@ -503,12 +509,10 @@ inline constexpr void buffer<C, R>::selection_delete(const selection& sel)
       // 0cd
 
       lmin->length -= (lmin->length - sel.min->col);
-      int32_t move_length = min(static_cast<int32_t>(lmax->length - sel.max->col),
-				static_cast<int32_t>(C - lmin->length));
-      if (move_length > 0)
-	move(&lmin->buf[sel.min->col],
-	     &lmax->buf[sel.max->col],
-	     move_length);
+      int32_t move_length = min(lmax->length - sel.max->col, C - lmin->length);
+      move(&lmin->buf[sel.min->col],
+	   &lmax->buf[sel.max->col],
+	   move_length);
       lmin->length += move_length;
 
       // delete max
@@ -535,9 +539,6 @@ inline constexpr void buffer<C, R>::selection_delete(const selection& sel)
 template <int C, int R>
 inline constexpr bool buffer<C, R>::mark_delete()
 {
-  if (this->mode != mode::mark)
-    return false;
-
   const selection sel = mark_get();
   this->selection_delete(sel);
 
@@ -549,8 +550,6 @@ inline constexpr bool buffer<C, R>::mark_delete()
 
   if (min.col < cur.col) { cur.col = min.col; scroll_right(); }
   else                   { cur.col = min.col; scroll_left();  }
-
-  this->mode = mode::normal;
 
   return true;
 }
@@ -641,6 +640,126 @@ inline constexpr bool buffer<C, R>::shadow_cut()
     return false;
 
   this->shadow_copy();
+
+  this->mark_delete();
+
+  this->mode = mode::normal;
+
+  return true;
+}
+
+template <int C, int R>
+inline constexpr void buffer<C, R>::overwrite_line(line<C> *& dst,
+						   const int32_t dst_col,
+						   line<C> * src,
+						   const int32_t src_col)
+{
+  if (src == nullptr) {
+    if (dst_col == 0) dst = nullptr;
+    //else do nothing
+  } else if (dst_col == 0 && src_col == 0 &&
+	     line_length(src) >= line_length(dst)) {
+    if (dst != nullptr) decref(dst);
+    dst = incref(src);
+  } else {
+    line<C> * dstmut = mutref(dst);
+    int32_t copy_length = min(src->length - src_col, C - dst_col);
+    move(&dstmut->buf[dst_col],
+	 &src->buf[src_col],
+	 copy_length);
+
+    //   v
+    // 012345
+    // 2 + 4 = 6
+    dstmut->length = max(dstmut->length, dst_col + copy_length);
+  }
+}
+
+template <int C, int R>
+inline constexpr bool buffer<C, R>::shadow_paste()
+{
+  if (this->mode == mode::mark)
+    this->mode = mode::normal;
+
+  editor::cursor& cur = this->cursor;
+
+  if (this->shadow.length == 1) {
+
+    line<C> * ls = this->shadow.lines[0];
+    line<C> *& lc = this->lines[cur.row];
+    //             dst, dst_col
+    overwrite_line(lc,  cur.col + ls->length, // (dst_col = 2 + 3 = 5)
+    //             src, src_col
+		   lc,  cur.col); // (length = 5 - 2 = 3)
+    // now copy shadow to lc
+    overwrite_line(lc, cur.col,
+		   ls, 0);
+
+    cur.col += ls->length;
+    scroll_right();
+  } else {
+    // (qw
+    //  er
+    //  gh)
+    //
+    // aBcd
+    // zyx (1)
+    //
+    // aqw
+    // er (cow)
+    // ghBcd
+    // zyx (3)
+
+    int32_t last_line_offset = (this->shadow.length - 1); // (2)
+
+    line<C> *& first_line_dst = this->lines[cur.row];
+    line<C> * first_line_src = this->shadow.lines[0];
+    line<C> *& last_line_dst = this->lines[cur.row + last_line_offset];
+    line<C> * last_line_src = this->shadow.lines[last_line_offset];
+
+    int32_t shift_first_ix = cur.row + 1;
+    int32_t shift_lines = this->length - shift_first_ix; // (2 - 1)
+
+    move(&this->lines[cur.row + this->shadow.length], // 3
+	 &this->lines[shift_first_ix], // 1
+	 (sizeof (line<C>*)) * shift_lines);
+
+    // cow all lines other than the first and last
+    for (int ix = 1; ix < last_line_offset; ix++) { // ix < 2, max(ix) == 1
+      this->lines[cur.row + ix] = incref(this->shadow.lines[ix]);
+    }
+
+    // copy 'bcd' to last_line_dst
+    //             dst,            dst_col
+    overwrite_line(last_line_dst,  line_length(last_line_src),
+    //             src,            src_col
+		   first_line_dst, cur.col);
+
+    // shrink first_line_dst to '1'
+    if (first_line_dst != nullptr) first_line_dst->length = cur.col;
+
+    // copy 'qw' to first_line_dst
+    overwrite_line(first_line_dst, cur.col,
+		   first_line_src, 0);
+
+    // copy 'gh' to last_line_dst
+    overwrite_line(last_line_dst, 0,
+		   last_line_src, 0);
+
+    this->length += last_line_offset;
+
+    cur.row += last_line_offset;
+    scroll_down();
+
+    int32_t new_col = line_length(last_line_src);
+    if (new_col < cur.col) {
+      cur.col = new_col;
+      scroll_right();
+    } else {
+      cur.col = new_col;
+      scroll_left();
+    }
+  }
 
   return true;
 }

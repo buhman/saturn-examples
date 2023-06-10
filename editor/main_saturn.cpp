@@ -134,6 +134,8 @@ inline void keyboard_regular_key(const enum keysym k)
     case keysym::N     : buffer.cursor_down(); break;
     case keysym::A     : buffer.cursor_home(); break;
     case keysym::E     : buffer.cursor_end(); break;
+    case keysym::Y     : buffer.shadow_paste(); break;
+    case keysym::W     : buffer.shadow_cut(); break;
     default: break;
     }
     break;
@@ -141,6 +143,10 @@ inline void keyboard_regular_key(const enum keysym k)
   case MODIFIER_LEFT_ALT: [[fallthrough]];
   case MODIFIER_RIGHT_ALT: [[fallthrough]];
   case MODIFIER_BOTH_ALT:
+    switch (k) {
+    case keysym::W     : buffer.shadow_copy(); break;
+    default: break;
+    }
     break;
 
   default: break;
