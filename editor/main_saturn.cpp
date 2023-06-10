@@ -33,7 +33,7 @@ void palette_data()
   vdp2.cram.u16[1 + 16] = rgb15(31, 31, 31);
   vdp2.cram.u16[2 + 16] = rgb15( 0,  0,  0);
 
-  vdp2.cram.u16[1 + 32] = rgb15(15, 15, 15);
+  vdp2.cram.u16[1 + 32] = rgb15(10, 10, 10);
   vdp2.cram.u16[2 + 32] = rgb15(31, 31, 31);
 }
 
@@ -102,7 +102,7 @@ inline void keyboard_regular_key(const enum keysym k)
     case keysym::ENTER      : buffer.enter(); break;
     default:
       {
-	uint8_t c = keysym_to_char(k, false);
+	int32_t c = keysym_to_char(k, false);
 	if (c != -1) buffer.put(c);
       }
       break;
@@ -115,7 +115,7 @@ inline void keyboard_regular_key(const enum keysym k)
     switch (k) {
     default:
       {
-	uint8_t c = keysym_to_char(k, true);
+	int32_t c = keysym_to_char(k, true);
 	if (c != -1) buffer.put(c);
       }
       break;
@@ -126,7 +126,7 @@ inline void keyboard_regular_key(const enum keysym k)
   case MODIFIER_RIGHT_CTRL: [[fallthrough]];
   case MODIFIER_BOTH_CTRL:
     switch (k) {
-    case keysym::SPACE : buffer.set_mark(); break;
+    case keysym::SPACE : buffer.mark_set(); break;
     case keysym::G     : buffer.quit(); break;
     case keysym::B     : buffer.cursor_left(); break;
     case keysym::F     : buffer.cursor_right(); break;
@@ -207,23 +207,32 @@ set_char(int32_t x, int32_t y, uint8_t palette, uint8_t c)
 
 void render()
 {
-  for (int row = 0; row < buffer.window.cell_height; row++) {
-    const buffer_type::line_type * l = buffer.lines[buffer.window.top + row];
+  editor::cursor& cur = buffer.cursor;
 
-    for (int col = 0; col < buffer.window.cell_width; col++) {
-      uint8_t c;
+  editor::selection sel;
 
-      c = ' ';
-      if (l != nullptr && (buffer.window.left + col) < l->length)
-	c = l->buf[buffer.window.left + col];
+  if (buffer.mode == editor::mode::mark)
+    sel = buffer.mark_get();
 
-      set_char(col, row, 0, c);
+  for (int y = 0; y < buffer.window.cell_height; y++) {
+    const int32_t row = buffer.window.top + y;
+    const buffer_type::line_type * l = buffer.lines[row];
+
+    for (int x = 0; x < buffer.window.cell_width; x++) {
+      const int32_t col = buffer.window.left + x;
+      const uint8_t c = (l != nullptr && col < l->length) ? l->buf[col] : ' ';
+      uint8_t palette = 0;
+
+      if (row == cur.row && col == cur.col) {
+	palette = 1;
+      } else if (buffer.mode == editor::mode::mark) {
+	if (sel.contains(col, row))
+	  palette = 2;
+      }
+
+      set_char(x, y, palette, c);
     }
   }
-  editor::cursor& cur = buffer.cursor;
-  const buffer_type::line_type * l = buffer.lines[cur.row];
-  uint8_t c = (l != nullptr && cur.col < l->length) ? l->buf[cur.col] : ' ';
-  set_char(cur.col - buffer.window.left, cur.row - buffer.window.top, 1, c);
 }
 
 extern "C"

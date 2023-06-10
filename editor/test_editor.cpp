@@ -74,7 +74,6 @@ static void test_put()
   assert(l = &b.row[0]);
   assert(l->length == 1);
   assert(l->buf[0] == 'a');
-  assert(l->buf[1] == 0x7f);
   assert(b.cursor.col == 1);
   assert(b.cursor.row == 0);
   assert(b.length == 1);
@@ -84,7 +83,6 @@ static void test_put()
   assert(l->length == 2);
   assert(l->buf[0] == 'a');
   assert(l->buf[1] == 'b');
-  assert(l->buf[2] == 0x7f);
   assert(b.cursor.col == 2);
   assert(b.cursor.row == 0);
   assert(b.length == 1);
@@ -96,7 +94,6 @@ static void test_put()
   assert(l->buf[0] == 'a');
   assert(l->buf[1] == 'c');
   assert(l->buf[2] == 'b');
-  assert(l->buf[3] == 0x7f);
   assert(b.cursor.col == 2);
   assert(b.cursor.row == 0);
   assert(b.length == 1);
@@ -114,7 +111,6 @@ void test_backspace()
 
   assert(b.backspace() == true);
   assert(l->length == 0);
-  assert(l->buf[0] == 0x7f);
 
   assert(b.backspace() == false);
 
@@ -130,7 +126,6 @@ void test_backspace()
   assert(l->buf[0] == 'b');
   assert(l->buf[1] == 'd');
   assert(l->buf[2] == 'e');
-  assert(l->buf[3] == 0x7f);
   assert(l->length == 3);
 }
 
@@ -150,7 +145,6 @@ void test_enter()
   b.put('s');
   b.put('d');
   b.put('f');
-
   b.cursor.row = 1;
   b.cursor.col = 0;
   b.put('q');
@@ -295,6 +289,278 @@ void test_enter_backspace3()
   assert(b.lines[3] == nullptr);
 }
 
+void test_copy()
+{
+  // 0123
+
+  // asDf
+  // qwer
+  // jKlo
+
+  // asklo
+  //
+  // df
+  // qwer
+  // j
+
+  buffer<8, 8> b {4, 2};
+
+  b.put('a');
+  b.put('s');
+  b.put('d');
+  b.put('f');
+  b.enter();
+  b.put('q');
+  b.put('w');
+  b.put('e');
+  b.put('r');
+  b.enter();
+  b.put('j');
+  b.put('k');
+  b.put('l');
+  b.put('o');
+
+  b.cursor_up();
+  b.cursor_up();
+  b.cursor_left();
+  b.cursor_left();
+  b.mark_set();
+  b.cursor_down();
+  b.cursor_down();
+  b.cursor_left();
+
+  assert(b.mark.row == 0);
+  assert(b.mark.col == 2);
+  assert(b.cursor.row == 2);
+  assert(b.cursor.col == 1);
+
+  b.shadow_copy();
+  assert(b.shadow.length == 3);
+  assert(b.shadow.lines[0] != nullptr);
+  assert(b.shadow.lines[1] != nullptr);
+  assert(b.shadow.lines[2] != nullptr);
+  assert(b.shadow.lines[3] == nullptr);
+  assert(b.shadow.lines[0]->length == 2);
+  assert(b.shadow.lines[1]->length == 4);
+  assert(b.shadow.lines[2]->length == 1);
+  assert(b.shadow.lines[0]->buf[0] == 'd');
+  assert(b.shadow.lines[0]->buf[1] == 'f');
+  assert(b.shadow.lines[1]->buf[0] == 'q');
+  assert(b.shadow.lines[1]->buf[1] == 'w');
+  assert(b.shadow.lines[1]->buf[2] == 'e');
+  assert(b.shadow.lines[1]->buf[3] == 'r');
+  assert(b.shadow.lines[2]->buf[0] == 'j');
+  assert(b.shadow.lines[0] != b.lines[0]);
+  assert(b.shadow.lines[1] == b.lines[1]);
+  assert(b.shadow.lines[2] != b.lines[2]);
+}
+
+void test_copy_same_line()
+{
+  buffer<8, 8> b {4, 2};
+
+  //  v
+  // asdF
+  //
+  // sd
+
+  b.put('a');
+  b.put('s');
+  b.put('d');
+  b.put('f');
+  b.cursor_left();
+  b.mark_set();
+  b.cursor_left();
+  b.cursor_left();
+
+  // non-cow same line
+  b.shadow_copy();
+  assert(b.shadow.length == 1);
+  assert(b.shadow.lines[0] != nullptr);
+  assert(b.shadow.lines[1] == nullptr);
+  assert(b.shadow.lines[0] != b.lines[0]);
+  assert(b.shadow.lines[0]->length == 2);
+  assert(b.shadow.lines[0]->buf[0] == 's');
+  assert(b.shadow.lines[0]->buf[1] == 'd');
+
+  // cow same line
+  b.cursor_home();
+  b.mark_set();
+  b.cursor_end();
+  b.shadow_copy();
+  assert(b.shadow.length == 1);
+  assert(b.shadow.lines[0] == b.lines[0]);
+}
+
+void test_copy_multi_line_cow()
+{
+  buffer<8, 8> b {4, 2};
+
+  //  v
+  // asdF
+  //
+  // sd
+
+  b.put('a');
+  b.put('s');
+  b.put('d');
+  b.put('f');
+  b.enter();
+  b.put('q');
+  b.put('w');
+  b.put('e');
+  b.put('r');
+  b.mark_set();
+  b.cursor_up();
+  b.cursor_home();
+  b.shadow_copy();
+
+  assert(b.shadow.length == 2);
+  assert(b.shadow.lines[0] == b.lines[0]);
+  assert(b.shadow.lines[1] == b.lines[1]);
+}
+
+void test_copy_multi_line_offset()
+{
+  buffer<8, 8> b {4, 2};
+
+  b.put('a');
+  b.put('s');
+  b.put('d');
+  b.put('f');
+  b.enter();
+  b.put('q');
+  b.put('w');
+  b.put('e');
+  b.put('r');
+  b.enter();
+  b.put('s');
+  b.put('h');
+  b.put('a');
+  b.put('d');
+  b.enter();
+  b.put('o');
+  b.put('w');
+
+  // qwEr
+  // sHad
+
+  // er
+  // s
+  b.cursor_up();
+  b.cursor_home();
+  b.cursor_right();
+  b.mark_set();
+  b.cursor_up();
+  b.cursor_right();
+  b.shadow_copy();
+
+  assert(b.shadow.length == 2);
+  assert(b.shadow.lines[0]->length == 2);
+  assert(b.shadow.lines[1]->length == 1);
+  assert(b.shadow.lines[0]->buf[0] == 'e');
+  assert(b.shadow.lines[0]->buf[1] == 'r');
+  assert(b.shadow.lines[1]->buf[0] == 's');
+
+  b.cursor_home();
+  b.mark_set();
+  b.cursor_down();
+  b.cursor_down();
+  b.cursor_end();
+  b.shadow_copy();
+
+  assert(b.shadow.length == 3);
+  assert(b.shadow.lines[0] == b.lines[1]);
+  assert(b.shadow.lines[1] == b.lines[2]);
+  assert(b.shadow.lines[2] == b.lines[3]);
+}
+
+void test_delete_from_line()
+{
+  buffer<8, 8> b {4, 2};
+
+  b.put('a');
+  b.put('s');
+  b.put('d');
+  b.put('f');
+
+  //  S E
+  // asdf
+  // af
+
+  b.delete_from_line(b.lines[0], 1, 3);
+  assert(b.lines[0]->length == 2);
+  assert(b.lines[0]->buf[0] == 'a');
+  assert(b.lines[0]->buf[1] == 'f');
+
+  b.delete_from_line(b.lines[0], 0, 2);
+  assert(b.lines[0] == nullptr);
+}
+
+void test_selection_delete()
+{
+  buffer<8, 8> b {4, 2};
+
+  b.put('s');
+  b.put('p');
+  b.put('a');
+  b.put('m');
+  b.enter();
+  b.put('a');
+  b.put('s');
+  b.put('d');
+  b.put('f');
+  b.enter();
+  b.put('0');
+  b.put('1');
+  b.put('2');
+  b.put('3');
+  b.enter();
+  b.put('j');
+  b.put('k');
+  b.put('l');
+  b.put('p');
+  b.enter();
+  b.put('q');
+  b.put('w');
+  b.put('e');
+  b.put('r');
+
+  // spam    (0)
+  // asDf <  (1)
+  // 0123 -- (2) (del)
+  // jKlp <  (3) (del)
+  // qwer    (4)
+  // (5)
+
+  // spam  (0)
+  // asklp (1)
+  // qwer  (2)
+
+  cursor min { 2, 1 };
+  cursor max { 1, 3 };
+  selection sel { &min, &max };
+  b.selection_delete(sel);
+
+  assert(b.length == 3);
+  assert(b.lines[0]->length == 4);
+  assert(b.lines[0]->buf[0] == 's');
+  assert(b.lines[0]->buf[1] == 'p');
+  assert(b.lines[0]->buf[2] == 'a');
+  assert(b.lines[0]->buf[3] == 'm');
+  assert(b.lines[1]->length == 5);
+  assert(b.lines[1]->buf[0] == 'a');
+  assert(b.lines[1]->buf[1] == 's');
+  assert(b.lines[1]->buf[2] == 'k');
+  assert(b.lines[1]->buf[3] == 'l');
+  assert(b.lines[1]->buf[4] == 'p');
+  assert(b.lines[2]->length == 4);
+  assert(b.lines[2]->buf[0] == 'q');
+  assert(b.lines[2]->buf[1] == 'w');
+  assert(b.lines[2]->buf[2] == 'e');
+  assert(b.lines[2]->buf[3] == 'r');
+}
+
 int main()
 {
   test_allocate();
@@ -305,6 +571,20 @@ int main()
   test_enter_backspace3();
   test_enter_scroll();
   test_first_enter();
+  test_copy();
+  test_copy_same_line();
+  test_copy_multi_line_cow();
+  test_copy_multi_line_offset();
+  test_delete_from_line();
+  test_selection_delete();
+
+  editor::buffer<64, 12 * 1024> b {0, 0};
+  std::cerr << "size: " << (sizeof (b)) << '\n';
+  std::cerr << "  row: " << (sizeof (b.row)) << '\n';
+  std::cerr << "  lines: " << (sizeof (b.lines)) << '\n';
+  std::cerr << "  offsetof lines[1]: " << (reinterpret_cast<uint8_t*>(&b.lines[1]) -
+					   reinterpret_cast<uint8_t*>(&b.lines[0])) << '\n';
+  std::cerr << "  shadow.lines: " << (sizeof (b.shadow.lines)) << '\n';
 
   return 0;
 }

@@ -1,5 +1,5 @@
 CFLAGS = -Isaturn
-OPT = -Og
+OPT ?= -Og
 LIBGCC = $(shell $(CC) -print-file-name=libgcc.a)
 LIB = ./saturn
 
