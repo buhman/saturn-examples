@@ -139,6 +139,7 @@ inline void keyboard_regular_key(const enum keysym k)
     case keysym::E        : buffer.cursor_end(); break;
     case keysym::Y        : buffer.shadow_paste(); break;
     case keysym::W        : buffer.shadow_cut(); break;
+    case keysym::K        : buffer.line_kill(); break;
     default: break;
     }
     break;

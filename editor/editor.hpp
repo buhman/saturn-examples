@@ -101,6 +101,7 @@ struct buffer {
   inline constexpr void cursor_scan_word_backward();
 
   inline constexpr bool enter();
+  inline constexpr void line_kill();
   inline constexpr void mark_set();
   inline constexpr selection mark_get();
   inline constexpr void delete_from_line(line<C> *& l,
@@ -180,7 +181,8 @@ inline constexpr void buffer<C, R>::deallocate(line<C> *& l)
 template <int C, int R>
 inline constexpr void buffer<C, R>::decref(line<C> *& l)
 {
-  if (l->refcount == 1)
+  if (l == nullptr) return;
+  else if (l->refcount == 1)
     buffer<C, R>::deallocate(l);
   else {
     l->refcount--;
@@ -586,6 +588,27 @@ inline constexpr bool buffer<C, R>::enter()
 }
 
 template <int C, int R>
+inline constexpr void buffer<C, R>::line_kill()
+{
+  editor::cursor& cur = this->cursor;
+
+  if (line_length(this->lines[cur.row]) == 0) {
+    decref(this->lines[cur.row]);
+
+    // shift all lines up by one
+    int32_t n_lines = this->length - (cur.row + 1);
+    move(&this->lines[cur.row],
+	 &this->lines[cur.row+1],
+	 (sizeof (line<C>*)) * n_lines);
+    this->length--;
+    this->lines[this->length] = nullptr;
+  } else {
+    line<C> * l = mutref(this->lines[cur.row]);
+    l->length = cur.col;
+  }
+}
+
+template <int C, int R>
 inline constexpr void buffer<C, R>::mark_set()
 {
   this->mark.row = this->cursor.row;
@@ -719,8 +742,7 @@ template <int C, int R>
 inline constexpr void buffer<C, R>::shadow_clear()
 {
   for (int32_t i = 0; i < this->shadow.length; i++)
-    if (this->shadow.lines[i] != nullptr)
-      decref(this->shadow.lines[i]);
+    decref(this->shadow.lines[i]);
 
   this->shadow.length = 1;
 }
@@ -815,7 +837,7 @@ inline constexpr void buffer<C, R>::overwrite_line(line<C> *& dst,
     //else do nothing
   } else if (dst_col == 0 && src_col == 0 &&
 	     line_length(src) >= line_length(dst)) {
-    if (dst != nullptr) decref(dst);
+    decref(dst);
     dst = incref(src);
   } else {
     line<C> * dstmut = mutref(dst);
