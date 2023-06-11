@@ -83,7 +83,8 @@ struct buffer {
   inline static constexpr line<C> * incref(line<C> * l);
   inline static constexpr int32_t line_length(line<C> const * const l);
   inline constexpr bool put(uint8_t c);
-  inline constexpr bool backspace();
+  inline constexpr bool delete_backward();
+  inline constexpr bool delete_forward();
   inline constexpr bool cursor_left();
   inline constexpr bool cursor_right();
   inline constexpr bool cursor_up();
@@ -239,7 +240,7 @@ inline constexpr bool buffer<C, R>::put(const uint8_t c)
 }
 
 template <int C, int R>
-inline constexpr bool buffer<C, R>::backspace()
+inline constexpr bool buffer<C, R>::delete_backward()
 {
   if (this->mode == mode::mark) {
     this->mode = mode::normal;
@@ -274,11 +275,48 @@ inline constexpr bool buffer<C, R>::backspace()
     line<C> * l = mutref(this->lines[cur.row]);
     int32_t length = l->length - cur.col;
     move(&l->buf[cur.col-1], &l->buf[cur.col], length);
+    l->length--;
 
     cur.col--;
     scroll_left();
+  }
+
+  return true;
+}
+
+template <int C, int R>
+inline constexpr bool buffer<C, R>::delete_forward()
+{
+  if (this->mode == mode::mark) {
+    this->mode = mode::normal;
+    return mark_delete();
+  }
+
+  editor::cursor& cur = this->cursor;
+
+  if (cur.col < 0 || cur.col > C)
+    return false;
+
+  if (line_length(this->lines[cur.row]) == 0) {
+    if (this->length == 1) return false;
+    decref(this->lines[cur.row]);
+    // shift all lines up by 1
+    int32_t n_lines = this->length - (cur.row + 1);
+    move(&this->lines[cur.row],
+	 &this->lines[cur.row+1],
+	 (sizeof (line<C>*)) * n_lines);
+    this->length--;
+    this->lines[this->length] = nullptr;
+    // no scrolling needed--cursor is already in the correct position
+  } else {
+    //    c
+    // 01234
+    line<C> * l = mutref(this->lines[cur.row]);
+    int32_t length = l->length - cur.col;
+    move(&l->buf[cur.col], &l->buf[cur.col+1], length);
     l->length--;
-    l->buf[l->length] = 0x7f;
+
+    // no scrolling needed--cursor is already in the correct position
   }
 
   return true;

@@ -92,7 +92,8 @@ inline void keyboard_regular_key(const enum keysym k)
   switch (modifier_state) {
   case MODIFIER_NONE:
     switch (k) {
-    case keysym::BACKSPACE  : buffer.backspace(); break;
+    case keysym::BACKSPACE  : buffer.delete_backward(); break;
+    case keysym::DELETE     : buffer.delete_forward(); break;
     case keysym::ARROW_LEFT : buffer.cursor_left(); break;
     case keysym::ARROW_RIGHT: buffer.cursor_right(); break;
     case keysym::ARROW_UP   : buffer.cursor_up(); break;

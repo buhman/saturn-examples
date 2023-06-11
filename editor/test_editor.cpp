@@ -109,10 +109,10 @@ void test_backspace()
   assert(l->length == 1);
   assert(l->buf[0] == 'a');
 
-  assert(b.backspace() == true);
+  assert(b.delete_backward() == true);
   assert(l->length == 0);
 
-  assert(b.backspace() == false);
+  assert(b.delete_backward() == false);
 
   b.put('b');
   b.put('c');
@@ -122,7 +122,7 @@ void test_backspace()
   assert(l->length == 4);
 
   //"bcde"
-  assert(b.backspace() == true);
+  assert(b.delete_backward() == true);
   assert(l->buf[0] == 'b');
   assert(l->buf[1] == 'd');
   assert(l->buf[2] == 'e');
@@ -202,8 +202,8 @@ void test_enter_backspace1()
   b.enter();
   b.enter();
   assert(b.length == 3);
-  b.backspace();
-  b.backspace();
+  b.delete_backward();
+  b.delete_backward();
   assert(b.length == 1);
   b.enter();
   assert(b.length == 2);
@@ -223,7 +223,7 @@ void test_enter_backspace2()
   assert(b.cursor.row == 1);
   assert(b.cursor.col == 0);
   assert(b.length == 2);
-  b.backspace();
+  b.delete_backward();
   assert(b.cursor.row == 0);
   assert(b.cursor.col == 1);
   assert(b.length == 1);
@@ -281,7 +281,7 @@ void test_enter_backspace3()
   assert(b.lines[4] == nullptr);
   assert(b.length == 4);
 
-  b.backspace();
+  b.delete_backward();
   assert(b.length == 3);
   assert(b.lines[0]->buf[0] == 'a');
   assert(b.lines[1]->length == 0);
@@ -731,6 +731,38 @@ void test_shadow_paste_multiline()
   assert(b.lines[4]->buf[2] == 'x');
 }
 
+void test_delete_forward()
+{
+   buffer<8, 8> b {4, 2};
+   b.put('a');
+   b.put('b');
+   b.put('c');
+   b.cursor_left();
+   b.cursor_left();
+   b.delete_forward();
+   assert(b.lines[0]->length == 2);
+   assert(b.lines[0]->buf[0] == 'a');
+   assert(b.lines[0]->buf[1] == 'c');
+
+   //
+   b.cursor_end();
+   b.enter();
+   b.enter();
+   b.put('q');
+   b.put('w');
+   b.cursor_home();
+   b.cursor_up();
+   assert(b.length == 3);
+   b.delete_forward();
+   assert(b.length == 2);
+   assert(b.lines[0]->length == 2);
+   assert(b.lines[0]->buf[0] == 'a');
+   assert(b.lines[0]->buf[1] == 'c');
+   assert(b.lines[1]->length == 2);
+   assert(b.lines[1]->buf[0] == 'q');
+   assert(b.lines[1]->buf[1] == 'w');
+}
+
 int main()
 {
   test_allocate();
@@ -749,6 +781,7 @@ int main()
   test_selection_delete();
   test_shadow_paste_oneline();
   test_shadow_paste_multiline();
+  test_delete_forward();
 
   return 0;
 }
