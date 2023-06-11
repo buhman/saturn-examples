@@ -215,7 +215,7 @@ inline constexpr int32_t buffer<C, R>::line_length(line<C> const * const l)
 template <int C, int R>
 inline constexpr bool buffer<C, R>::put(const uint8_t c)
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
   line<C> * l = mutref(this->lines[cur.row]);
 
   //   v
@@ -246,7 +246,7 @@ inline constexpr bool buffer<C, R>::backspace()
     return mark_delete();
   }
 
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
 
   if (cur.col < 0 || cur.col > C)
     return false;
@@ -254,8 +254,8 @@ inline constexpr bool buffer<C, R>::backspace()
   if (cur.col == 0) {
     if (cur.row == 0) return false;
     // make selection
-    struct cursor min { line_length(this->lines[cur.row-1]), cur.row-1 };
-    struct cursor max { cur.col, cur.row };
+    editor::cursor min { line_length(this->lines[cur.row-1]), cur.row-1 };
+    editor::cursor max { cur.col, cur.row };
     selection sel { &min, &max };
     selection_delete(sel);
 
@@ -287,7 +287,7 @@ inline constexpr bool buffer<C, R>::backspace()
 template <int C, int R>
 inline constexpr bool buffer<C, R>::cursor_left()
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
 
   if (cur.col <= 0) {
     if (cur.row <= 0)
@@ -310,7 +310,7 @@ inline constexpr bool buffer<C, R>::cursor_left()
 template <int C, int R>
 inline constexpr bool buffer<C, R>::cursor_right()
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
 
   line<C> const * const l = this->lines[cur.row];
   int32_t length = line_length(l);
@@ -334,7 +334,7 @@ inline constexpr bool buffer<C, R>::cursor_right()
 template <int C, int R>
 inline constexpr bool buffer<C, R>::cursor_up()
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
 
   if (cur.row <= 0)
     return false;
@@ -351,7 +351,7 @@ inline constexpr bool buffer<C, R>::cursor_up()
 template <int C, int R>
 inline constexpr bool buffer<C, R>::cursor_down()
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
 
   if (cur.row >= (this->length - 1))
     return false;
@@ -368,7 +368,7 @@ inline constexpr bool buffer<C, R>::cursor_down()
 template <int C, int R>
 inline constexpr bool buffer<C, R>::cursor_home()
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
   cur.col = 0;
   scroll_left();
   return true;
@@ -377,7 +377,7 @@ inline constexpr bool buffer<C, R>::cursor_home()
 template <int C, int R>
 inline constexpr bool buffer<C, R>::cursor_end()
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
 
   cur.col = line_length(this->lines[cur.row]);
   scroll_right();
@@ -387,7 +387,7 @@ inline constexpr bool buffer<C, R>::cursor_end()
 template <int C, int R>
 inline constexpr bool buffer<C, R>::enter()
 {
-  struct cursor& cur = this->cursor;
+  editor::cursor& cur = this->cursor;
 
   if (cur.row >= R || cur.row < 0)
     return false;
