@@ -763,6 +763,37 @@ void test_delete_forward()
    assert(b.lines[1]->buf[1] == 'w');
 }
 
+void test_delete_word_backward()
+{
+  buffer<8, 8> b {4, 2};
+
+  b.put('q');
+  b.put('w');
+  b.put('e');
+  b.enter();
+  assert(b.length == 2);
+  b.delete_word_backward();
+  assert(b.length == 1);
+  assert(decltype(b)::line_length(b.lines[0]) == 0);
+
+  b.put('f');
+  b.put('o');
+  b.put('o');
+  b.put(' ');
+  b.put('b');
+  b.put('a');
+  b.put('r');
+  b.enter();
+  b.put('j');
+  b.put('k');
+  b.put('l');
+  assert(b.length == 2);
+  b.delete_word_backward();
+  b.delete_word_backward();
+  assert(b.length == 1);
+  assert(decltype(b)::line_length(b.lines[0]) == 4);
+}
+
 int main()
 {
   test_allocate();
@@ -782,6 +813,7 @@ int main()
   test_shadow_paste_oneline();
   test_shadow_paste_multiline();
   test_delete_forward();
+  test_delete_word_backward();
 
   return 0;
 }

@@ -83,8 +83,10 @@ struct buffer {
   inline static constexpr line<C> * incref(line<C> * l);
   inline static constexpr int32_t line_length(line<C> const * const l);
   inline constexpr bool put(uint8_t c);
-  inline constexpr bool delete_backward();
   inline constexpr bool delete_forward();
+  inline constexpr bool delete_backward();
+  inline constexpr void delete_word_forward();
+  inline constexpr void delete_word_backward();
 
   inline constexpr bool cursor_left();
   inline constexpr bool cursor_right();
@@ -249,6 +251,44 @@ inline constexpr bool buffer<C, R>::put(const uint8_t c)
 }
 
 template <int C, int R>
+inline constexpr bool buffer<C, R>::delete_forward()
+{
+  if (this->mode == mode::mark) {
+    this->mode = mode::normal;
+    return mark_delete();
+  }
+
+  editor::cursor& cur = this->cursor;
+
+  if (cur.col < 0 || cur.col > C)
+    return false;
+
+  if (line_length(this->lines[cur.row]) == 0) {
+    if (this->length == 1) return false;
+    decref(this->lines[cur.row]);
+    // shift all lines up by 1
+    int32_t n_lines = this->length - (cur.row + 1);
+    move(&this->lines[cur.row],
+	 &this->lines[cur.row+1],
+	 (sizeof (line<C>*)) * n_lines);
+    this->length--;
+    this->lines[this->length] = nullptr;
+    // no scrolling needed--cursor is already in the correct position
+  } else {
+    //    c
+    // 01234
+    line<C> * l = mutref(this->lines[cur.row]);
+    int32_t length = l->length - cur.col;
+    move(&l->buf[cur.col], &l->buf[cur.col+1], length);
+    l->length--;
+
+    // no scrolling needed--cursor is already in the correct position
+  }
+
+  return true;
+}
+
+template <int C, int R>
 inline constexpr bool buffer<C, R>::delete_backward()
 {
   if (this->mode == mode::mark) {
@@ -288,41 +328,31 @@ inline constexpr bool buffer<C, R>::delete_backward()
 }
 
 template <int C, int R>
-inline constexpr bool buffer<C, R>::delete_forward()
+inline constexpr void buffer<C, R>::delete_word_forward()
 {
-  if (this->mode == mode::mark) {
-    this->mode = mode::normal;
-    return mark_delete();
-  }
+  mark_set();
+  cursor_scan_word_forward();
+  const selection sel = mark_get();
+  selection_delete(sel);
 
-  editor::cursor& cur = this->cursor;
+  // move cur to sel.min
+  scroll_new_cursor(*sel.min);
 
-  if (cur.col < 0 || cur.col > C)
-    return false;
+  this->mode = mode::normal;
+}
 
-  if (line_length(this->lines[cur.row]) == 0) {
-    if (this->length == 1) return false;
-    decref(this->lines[cur.row]);
-    // shift all lines up by 1
-    int32_t n_lines = this->length - (cur.row + 1);
-    move(&this->lines[cur.row],
-	 &this->lines[cur.row+1],
-	 (sizeof (line<C>*)) * n_lines);
-    this->length--;
-    this->lines[this->length] = nullptr;
-    // no scrolling needed--cursor is already in the correct position
-  } else {
-    //    c
-    // 01234
-    line<C> * l = mutref(this->lines[cur.row]);
-    int32_t length = l->length - cur.col;
-    move(&l->buf[cur.col], &l->buf[cur.col+1], length);
-    l->length--;
+template <int C, int R>
+inline constexpr void buffer<C, R>::delete_word_backward()
+{
+  mark_set();
+  cursor_scan_word_backward();
+  const selection sel = mark_get();
+  selection_delete(sel);
 
-    // no scrolling needed--cursor is already in the correct position
-  }
+  // move cur to sel.min
+  scroll_new_cursor(*sel.min);
 
-  return true;
+  this->mode = mode::normal;
 }
 
 template <int C, int R>
@@ -625,9 +655,12 @@ inline constexpr void buffer<C, R>::selection_delete(const selection& sel)
       decref(this->lines[ix]);
     }
 
+    // remove sel.min->col from lmin
+    line<C> * lmin = mutref(this->lines[sel.min->row]);
+    lmin->length -= (lmin->length - sel.min->col);
+
     if (this->lines[sel.max->row] != nullptr) {
       // combine min/max; truncating overflow
-      line<C> * lmin = mutref(this->lines[sel.min->row]);
       const line<C> * lmax = this->lines[sel.max->row];
 
       //  v
@@ -637,7 +670,6 @@ inline constexpr void buffer<C, R>::selection_delete(const selection& sel)
 
       // 0cd
 
-      lmin->length -= (lmin->length - sel.min->col);
       int32_t move_length = min(lmax->length - sel.max->col, C - lmin->length);
       move(&lmin->buf[sel.min->col],
 	   &lmax->buf[sel.max->col],
@@ -669,7 +701,7 @@ template <int C, int R>
 inline constexpr bool buffer<C, R>::mark_delete()
 {
   const selection sel = mark_get();
-  this->selection_delete(sel);
+  selection_delete(sel);
 
   // move cur to sel.min
   scroll_new_cursor(*sel.min);

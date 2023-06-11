@@ -127,16 +127,18 @@ inline void keyboard_regular_key(const enum keysym k)
   case MODIFIER_RIGHT_CTRL: [[fallthrough]];
   case MODIFIER_BOTH_CTRL:
     switch (k) {
-    case keysym::SPACE: buffer.mark_set(); break;
-    case keysym::G    : buffer.quit(); break;
-    case keysym::B    : buffer.cursor_left(); break;
-    case keysym::F    : buffer.cursor_right(); break;
-    case keysym::P    : buffer.cursor_up(); break;
-    case keysym::N    : buffer.cursor_down(); break;
-    case keysym::A    : buffer.cursor_home(); break;
-    case keysym::E    : buffer.cursor_end(); break;
-    case keysym::Y    : buffer.shadow_paste(); break;
-    case keysym::W    : buffer.shadow_cut(); break;
+    case keysym::BACKSPACE: buffer.delete_word_backward(); break;
+    case keysym::DELETE   : buffer.delete_word_forward(); break;
+    case keysym::SPACE    : buffer.mark_set(); break;
+    case keysym::G        : buffer.quit(); break;
+    case keysym::B        : buffer.cursor_left(); break;
+    case keysym::F        : buffer.cursor_right(); break;
+    case keysym::P        : buffer.cursor_up(); break;
+    case keysym::N        : buffer.cursor_down(); break;
+    case keysym::A        : buffer.cursor_home(); break;
+    case keysym::E        : buffer.cursor_end(); break;
+    case keysym::Y        : buffer.shadow_paste(); break;
+    case keysym::W        : buffer.shadow_cut(); break;
     default: break;
     }
     break;
