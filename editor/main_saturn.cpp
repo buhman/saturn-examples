@@ -12,9 +12,10 @@
 
 #include "editor.hpp"
 
-extern void * _sperrypc_bitmap_start __asm("_binary_res_sperrypc_bitmap_bin_start");
+extern void * _nec_bitmap_start __asm("_binary_res_nec_bitmap_bin_start");
+extern void * _nec_bold_bitmap_start __asm("_binary_res_nec_bold_bitmap_bin_start");
 
-using buffer_type = editor::buffer<64, 64>;
+using buffer_type = editor::buffer<64, 64, 40>;
 constexpr int32_t viewport_max_col = 320 / 8;
 constexpr int32_t viewport_max_row = 240 / 8;
 
@@ -62,12 +63,16 @@ namespace pix_fmt_4bpp
 
 void cell_data()
 {
-  const uint8_t * buf = reinterpret_cast<uint8_t*>(&_sperrypc_bitmap_start);
+  const uint8_t * normal = reinterpret_cast<uint8_t*>(&_nec_bitmap_start);
+  const uint8_t * bold = reinterpret_cast<uint8_t*>(&_nec_bold_bitmap_start);
 
   for (int ix = 0; ix <= (0x7f - 0x20); ix++) {
     for (int y = 0; y < 8; y++) {
-      uint8_t row = buf[ix * 8 + y];
-      vdp2.vram.u32[(ix * 8) + y] = pix_fmt_4bpp::bits(row);
+      const uint8_t row_n = normal[ix * 8 + y];
+      vdp2.vram.u32[ 0 + (ix * 8) + y] = pix_fmt_4bpp::bits(row_n);
+
+      const uint8_t row_b = bold[ix * 8 + y];
+      vdp2.vram.u32[96 + (ix * 8) + y] = pix_fmt_4bpp::bits(row_b);
     }
   }
 }

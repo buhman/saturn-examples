@@ -23,7 +23,7 @@ struct cursor {
 
 enum struct mode {
   normal,
-  mark
+  mark,
 };
 
 struct selection {
@@ -49,8 +49,11 @@ inline constexpr bool selection::contains(int32_t col, int32_t row)
   return false;
 }
 
-template <int C, int R>
+template <int C, int R, int V>
 struct buffer {
+  static_assert((C & (C - 1)) == 0);
+  static_assert(C < 32 || C % 32 == 0);
+
   line<C> row[R];
   line<C> * lines[R];
   int32_t length;
@@ -64,6 +67,7 @@ struct buffer {
     int32_t cell_height;
     int32_t top;
     int32_t left;
+    int32_t viewport[V][C < 32 ? 1 : C / 32];
   } window;
   struct cursor cursor;
   struct cursor mark;
@@ -130,8 +134,8 @@ struct buffer {
   inline constexpr void scroll_new_col(const int32_t col);
 };
 
-template <int C, int R>
-inline constexpr buffer<C, R>::buffer(int32_t width, int32_t height)
+template <int C, int R, int V>
+inline constexpr buffer<C, R, V>::buffer(int32_t width, int32_t height)
 {
   this->length = 1;
   this->shadow.length = 1;
@@ -148,14 +152,16 @@ inline constexpr buffer<C, R>::buffer(int32_t width, int32_t height)
     this->lines[i] = nullptr;
     this->shadow.lines[i] = nullptr;
 
+    /*
     for (int32_t j = 0; j < C; j++) {
       this->row[i].buf[j] = 0x7f;
     }
+    */
   }
 }
 
-template <int C, int R>
-inline constexpr line<C> * buffer<C, R>::allocate()
+template <int C, int R, int V>
+inline constexpr line<C> * buffer<C, R, V>::allocate()
 {
   line<C> * l;
   while ((l = &this->row[this->alloc_ix])->length != -1) {
@@ -168,30 +174,29 @@ inline constexpr line<C> * buffer<C, R>::allocate()
   return l;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::deallocate(line<C> *& l)
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::deallocate(line<C> *& l)
 {
   // does not touch alloc_ix
-  fill<uint8_t>(l->buf, 0x7f, l->length);
   l->length = -1;
   l->refcount = 0;
   l = nullptr;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::decref(line<C> *& l)
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::decref(line<C> *& l)
 {
   if (l == nullptr) return;
   else if (l->refcount == 1)
-    buffer<C, R>::deallocate(l);
+    buffer<C, R, V>::deallocate(l);
   else {
     l->refcount--;
     l = nullptr;
   }
 }
 
-template <int C, int R>
-inline constexpr line<C> * buffer<C, R>::dup(line<C> const * const src)
+template <int C, int R, int V>
+inline constexpr line<C> * buffer<C, R, V>::dup(line<C> const * const src)
 {
   line<C> * dst = this->allocate();
   copy(&dst->buf[0], &src->buf[0], src->length);
@@ -199,8 +204,8 @@ inline constexpr line<C> * buffer<C, R>::dup(line<C> const * const src)
   return dst;
 }
 
-template <int C, int R>
-inline constexpr line<C> * buffer<C, R>::mutref(line<C> *& l)
+template <int C, int R, int V>
+inline constexpr line<C> * buffer<C, R, V>::mutref(line<C> *& l)
 {
   if (l == nullptr) {
     l = this->allocate();
@@ -212,29 +217,29 @@ inline constexpr line<C> * buffer<C, R>::mutref(line<C> *& l)
   return l;
 }
 
-template <int C, int R>
-inline constexpr line<C> * buffer<C, R>::incref(line<C> * l)
+template <int C, int R, int V>
+inline constexpr line<C> * buffer<C, R, V>::incref(line<C> * l)
 {
   if (l != nullptr) l->refcount++;
   return l;
 }
 
-template <int C, int R>
-inline constexpr int32_t buffer<C, R>::line_length(line<C> const * const l)
+template <int C, int R, int V>
+inline constexpr int32_t buffer<C, R, V>::line_length(line<C> const * const l)
 {
   if (l == nullptr) return 0;
   else return l->length;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::put(const uint8_t c)
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::put(const uint8_t c)
 {
   editor::cursor& cur = this->cursor;
   line<C> * l = mutref(this->lines[cur.row]);
 
   //   v
   // 0123
-  if (l->length >= C || cur.col >= C || cur.col < 0)
+  if (cur.col >= C)
     return false;
 
   if (l->length > cur.col) {
@@ -252,8 +257,8 @@ inline constexpr bool buffer<C, R>::put(const uint8_t c)
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::delete_forward()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::delete_forward()
 {
   if (this->mode == mode::mark) {
     this->mode = mode::normal;
@@ -261,9 +266,6 @@ inline constexpr bool buffer<C, R>::delete_forward()
   }
 
   editor::cursor& cur = this->cursor;
-
-  if (cur.col < 0 || cur.col > C)
-    return false;
 
   if (line_length(this->lines[cur.row]) == 0) {
     if (this->length == 1) return false;
@@ -290,8 +292,8 @@ inline constexpr bool buffer<C, R>::delete_forward()
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::delete_backward()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::delete_backward()
 {
   if (this->mode == mode::mark) {
     this->mode = mode::normal;
@@ -299,9 +301,6 @@ inline constexpr bool buffer<C, R>::delete_backward()
   }
 
   editor::cursor& cur = this->cursor;
-
-  if (cur.col < 0 || cur.col > C)
-    return false;
 
   if (cur.col == 0) {
     if (cur.row == 0) return false;
@@ -329,8 +328,8 @@ inline constexpr bool buffer<C, R>::delete_backward()
   return true;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::delete_word_forward()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::delete_word_forward()
 {
   mark_set();
   cursor_scan_word_forward();
@@ -343,8 +342,8 @@ inline constexpr void buffer<C, R>::delete_word_forward()
   this->mode = mode::normal;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::delete_word_backward()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::delete_word_backward()
 {
   mark_set();
   cursor_scan_word_backward();
@@ -357,8 +356,8 @@ inline constexpr void buffer<C, R>::delete_word_backward()
   this->mode = mode::normal;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_left()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_left()
 {
   editor::cursor& cur = this->cursor;
 
@@ -380,8 +379,8 @@ inline constexpr bool buffer<C, R>::cursor_left()
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_right()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_right()
 {
   editor::cursor& cur = this->cursor;
 
@@ -404,8 +403,8 @@ inline constexpr bool buffer<C, R>::cursor_right()
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_up()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_up()
 {
   editor::cursor& cur = this->cursor;
 
@@ -421,8 +420,8 @@ inline constexpr bool buffer<C, R>::cursor_up()
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_down()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_down()
 {
   editor::cursor& cur = this->cursor;
 
@@ -438,8 +437,8 @@ inline constexpr bool buffer<C, R>::cursor_down()
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_home()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_home()
 {
   editor::cursor& cur = this->cursor;
   cur.col = 0;
@@ -447,8 +446,8 @@ inline constexpr bool buffer<C, R>::cursor_home()
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_end()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_end()
 {
   editor::cursor& cur = this->cursor;
 
@@ -464,16 +463,16 @@ static inline constexpr bool word_boundary(int8_t c)
        || (c >= '0' && c <= '9'));
 }
 
-template <int C, int R>
-inline constexpr uint8_t buffer<C, R>::cursor_get(const editor::cursor& cur)
+template <int C, int R, int V>
+inline constexpr uint8_t buffer<C, R, V>::cursor_get(const editor::cursor& cur)
 {
   return this->lines[cur.row] == nullptr ? 0 :
     (cur.col == this->lines[cur.row]->length ? '\n' :
      this->lines[cur.row]->buf[cur.col]);
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_increment(editor::cursor& cur)
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_increment(editor::cursor& cur)
 {
   if (cur.col >= line_length(this->lines[cur.row])) {
     if (cur.row + 1 >= this->length) {
@@ -488,8 +487,8 @@ inline constexpr bool buffer<C, R>::cursor_increment(editor::cursor& cur)
   return true;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::cursor_scan_word_forward()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::cursor_scan_word_forward()
 {
   // copy of this->cursor
   editor::cursor cur = this->cursor;
@@ -508,8 +507,8 @@ inline constexpr void buffer<C, R>::cursor_scan_word_forward()
   scroll_new_cursor(cur);
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::cursor_decrement(editor::cursor& cur)
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::cursor_decrement(editor::cursor& cur)
 {
   if (cur.col == 0) {
     if (cur.row - 1 < 0) {
@@ -524,8 +523,8 @@ inline constexpr bool buffer<C, R>::cursor_decrement(editor::cursor& cur)
   return true;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::cursor_scan_word_backward()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::cursor_scan_word_backward()
 {
   // copy of this->cursor
   editor::cursor cur = this->cursor;
@@ -545,12 +544,12 @@ inline constexpr void buffer<C, R>::cursor_scan_word_backward()
   scroll_new_cursor(cur);
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::enter()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::enter()
 {
   editor::cursor& cur = this->cursor;
 
-  if (cur.row >= R || cur.row < 0)
+  if (cur.row >= R)
     return false;
 
   if ((this->length - 1) > cur.row) {
@@ -570,7 +569,6 @@ inline constexpr bool buffer<C, R>::enter()
       old_l = mutref(old_l);
       old_l->length -= new_l->length;
       copy(&new_l->buf[0], &old_l->buf[cur.col], new_l->length);
-      fill<uint8_t>(&old_l->buf[cur.col], 0x7f, new_l->length);
     }
   } else {
     // nothing to do, new_l->length is already 0
@@ -587,8 +585,8 @@ inline constexpr bool buffer<C, R>::enter()
   return true;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::line_kill()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::line_kill()
 {
   editor::cursor& cur = this->cursor;
 
@@ -608,16 +606,16 @@ inline constexpr void buffer<C, R>::line_kill()
   }
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::mark_set()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::mark_set()
 {
   this->mark.row = this->cursor.row;
   this->mark.col = this->cursor.col;
   this->mode = mode::mark;
 }
 
-template <int C, int R>
-inline constexpr selection buffer<C, R>::mark_get()
+template <int C, int R, int V>
+inline constexpr selection buffer<C, R, V>::mark_get()
 {
   editor::cursor& cur = this->cursor;
   editor::cursor& mark = this->mark;
@@ -643,8 +641,8 @@ inline constexpr selection buffer<C, R>::mark_get()
   return sel;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::delete_from_line(line<C> *& l,
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::delete_from_line(line<C> *& l,
 						     const int32_t col_start_ix,
 						     const int32_t col_end_ix)
 {
@@ -664,8 +662,8 @@ inline constexpr void buffer<C, R>::delete_from_line(line<C> *& l,
   }
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::selection_delete(const selection& sel)
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::selection_delete(const selection& sel)
 {
   if (sel.min == sel.max) {
     return;
@@ -720,8 +718,8 @@ inline constexpr void buffer<C, R>::selection_delete(const selection& sel)
   }
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::mark_delete()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::mark_delete()
 {
   const selection sel = mark_get();
   selection_delete(sel);
@@ -732,14 +730,14 @@ inline constexpr bool buffer<C, R>::mark_delete()
   return true;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::quit()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::quit()
 {
   this->mode = mode::normal;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::shadow_clear()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::shadow_clear()
 {
   for (int32_t i = 0; i < this->shadow.length; i++)
     decref(this->shadow.lines[i]);
@@ -747,8 +745,8 @@ inline constexpr void buffer<C, R>::shadow_clear()
   this->shadow.length = 1;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::_shadow_cow(line<C> * src,
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::_shadow_cow(line<C> * src,
 						const int32_t dst_row_ix,
 						const int32_t col_start_ix,
 						const int32_t col_end_ix)
@@ -765,8 +763,8 @@ inline constexpr void buffer<C, R>::_shadow_cow(line<C> * src,
   }
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::shadow_copy()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::shadow_copy()
 {
   if (this->mode != mode::mark)
     return false;
@@ -812,8 +810,8 @@ inline constexpr bool buffer<C, R>::shadow_copy()
   return true;
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::shadow_cut()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::shadow_cut()
 {
   if (this->mode != mode::mark)
     return false;
@@ -826,8 +824,8 @@ inline constexpr bool buffer<C, R>::shadow_cut()
   return true;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::overwrite_line(line<C> *& dst,
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::overwrite_line(line<C> *& dst,
 						   const int32_t dst_col,
 						   line<C> * src,
 						   const int32_t src_col)
@@ -853,8 +851,8 @@ inline constexpr void buffer<C, R>::overwrite_line(line<C> *& dst,
   }
 }
 
-template <int C, int R>
-inline constexpr bool buffer<C, R>::shadow_paste()
+template <int C, int R, int V>
+inline constexpr bool buffer<C, R, V>::shadow_paste()
 {
   if (this->mode == mode::mark)
     this->mode = mode::normal;
@@ -936,15 +934,15 @@ inline constexpr bool buffer<C, R>::shadow_paste()
   return true;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::scroll_up()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::scroll_up()
 {
   if (this->cursor.row < this->window.top)
     this->window.top = this->cursor.row;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::scroll_down()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::scroll_down()
 {
   // 0: a  -
   // 1: bv -
@@ -957,15 +955,15 @@ inline constexpr void buffer<C, R>::scroll_down()
     this->window.top = (this->cursor.row - (this->window.cell_height - 1));
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::scroll_left()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::scroll_left()
 {
   if (this->cursor.col < this->window.left)
     this->window.left = this->cursor.col;
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::scroll_right()
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::scroll_right()
 {
   // 0: a  -
   // 1: bv -
@@ -978,8 +976,8 @@ inline constexpr void buffer<C, R>::scroll_right()
     this->window.left = (this->cursor.col - (this->window.cell_width - 1));
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::scroll_new_cursor(const editor::cursor& oth)
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::scroll_new_cursor(const editor::cursor& oth)
 {
   editor::cursor& cur = this->cursor;
 
@@ -990,8 +988,8 @@ inline constexpr void buffer<C, R>::scroll_new_cursor(const editor::cursor& oth)
   else                   { cur.col = oth.col; scroll_left();  }
 }
 
-template <int C, int R>
-inline constexpr void buffer<C, R>::scroll_new_col(const int32_t col)
+template <int C, int R, int V>
+inline constexpr void buffer<C, R, V>::scroll_new_col(const int32_t col)
 {
   editor::cursor& cur = this->cursor;
 

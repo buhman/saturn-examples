@@ -7,7 +7,7 @@ using namespace editor;
 
 static void test_allocate()
 {
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
   decltype(b)::line_type * l;
 
   assert(b.row[0].length == -1);
@@ -62,7 +62,7 @@ static void test_put()
 {
   //   v
   // "as" -> "abs"
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
   decltype(b)::line_type * l;
 
   assert(b.cursor.col == 0);
@@ -101,7 +101,7 @@ static void test_put()
 
 void test_backspace()
 {
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
   decltype(b)::line_type * l;
 
   b.put('a');
@@ -137,7 +137,7 @@ void test_enter()
   // [0] as
   // [1] Df
   // [2] qwer
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
 
   b.cursor.row = 0;
   b.cursor.col = 0;
@@ -191,7 +191,7 @@ void test_enter_backspace1()
   // ab
   // cd
 
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
 
   b.put('a');
   b.put('b');
@@ -216,7 +216,7 @@ void test_enter_backspace1()
 
 void test_enter_backspace2()
 {
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
 
   b.put('a');
   b.enter();
@@ -231,7 +231,7 @@ void test_enter_backspace2()
 
 void test_enter_scroll()
 {
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
 
   assert(b.window.top == 0);
   b.put('a');
@@ -253,7 +253,7 @@ void test_enter_scroll()
 
 void test_first_enter()
 {
-  buffer<8, 4> b {4, 2};
+  buffer<8, 4, 4> b {4, 2};
 
   b.enter();
   assert(b.length == 2);
@@ -266,7 +266,7 @@ void test_enter_backspace3()
   //
   // b
 
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   b.put('a');
   b.enter();
@@ -303,7 +303,7 @@ void test_copy()
   // qwer
   // j
 
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   b.put('a');
   b.put('s');
@@ -357,7 +357,7 @@ void test_copy()
 
 void test_copy_same_line()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   //  v
   // asdF
@@ -394,7 +394,7 @@ void test_copy_same_line()
 
 void test_copy_multi_line_cow()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   //  v
   // asdF
@@ -422,7 +422,7 @@ void test_copy_multi_line_cow()
 
 void test_copy_multi_line_offset()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   b.put('a');
   b.put('s');
@@ -477,7 +477,7 @@ void test_copy_multi_line_offset()
 
 void test_delete_from_line()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   b.put('a');
   b.put('s');
@@ -499,7 +499,7 @@ void test_delete_from_line()
 
 void test_selection_delete()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   b.put('s');
   b.put('p');
@@ -563,7 +563,7 @@ void test_selection_delete()
 
 void test_shadow_paste_oneline()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   b.put('q');
   b.put('w');
@@ -636,7 +636,7 @@ void test_shadow_paste_oneline()
 
 void test_shadow_paste_multiline()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   // (qw
   //  er
@@ -733,7 +733,7 @@ void test_shadow_paste_multiline()
 
 void test_delete_forward()
 {
-   buffer<8, 8> b {4, 2};
+   buffer<8, 8, 8> b {4, 2};
    b.put('a');
    b.put('b');
    b.put('c');
@@ -765,7 +765,7 @@ void test_delete_forward()
 
 void test_delete_word_backward()
 {
-  buffer<8, 8> b {4, 2};
+  buffer<8, 8, 8> b {4, 2};
 
   b.put('q');
   b.put('w');
