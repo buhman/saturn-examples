@@ -85,12 +85,19 @@ struct buffer {
   inline constexpr bool put(uint8_t c);
   inline constexpr bool delete_backward();
   inline constexpr bool delete_forward();
+
   inline constexpr bool cursor_left();
   inline constexpr bool cursor_right();
   inline constexpr bool cursor_up();
   inline constexpr bool cursor_down();
   inline constexpr bool cursor_home();
   inline constexpr bool cursor_end();
+  inline constexpr uint8_t cursor_get(const editor::cursor& cur);
+  inline constexpr bool cursor_increment(editor::cursor& cur);
+  inline constexpr void cursor_scan_word_forward();
+  inline constexpr bool cursor_decrement(editor::cursor& cur);
+  inline constexpr void cursor_scan_word_backward();
+
   inline constexpr bool enter();
   inline constexpr void mark_set();
   inline constexpr selection mark_get();
@@ -116,6 +123,8 @@ struct buffer {
   inline constexpr void scroll_right();
   inline constexpr void scroll_up();
   inline constexpr void scroll_down();
+  inline constexpr void scroll_new_cursor(const editor::cursor& cur);
+  inline constexpr void scroll_new_col(const int32_t col);
 };
 
 template <int C, int R>
@@ -262,13 +271,7 @@ inline constexpr bool buffer<C, R>::delete_backward()
 
     cur.row--;
     scroll_up();
-    if (min.col < cur.col) {
-      cur.col = min.col;
-      scroll_right();
-    } else {
-      cur.col = min.col;
-      scroll_left();
-    }
+    scroll_new_col(min.col);
   } else {
     //    c
     // 01234
@@ -420,6 +423,94 @@ inline constexpr bool buffer<C, R>::cursor_end()
   cur.col = line_length(this->lines[cur.row]);
   scroll_right();
   return true;
+}
+
+static inline constexpr bool word_boundary(int8_t c)
+{
+  return ((c >= 'a' && c <= 'z')
+       || (c >= 'A' && c <= 'Z')
+       || (c >= '0' && c <= '9'));
+}
+
+template <int C, int R>
+inline constexpr uint8_t buffer<C, R>::cursor_get(const editor::cursor& cur)
+{
+  return this->lines[cur.row] == nullptr ? 0 :
+    (cur.col == this->lines[cur.row]->length ? '\n' :
+     this->lines[cur.row]->buf[cur.col]);
+}
+
+template <int C, int R>
+inline constexpr bool buffer<C, R>::cursor_increment(editor::cursor& cur)
+{
+  if (cur.col >= line_length(this->lines[cur.row])) {
+    if (cur.row + 1 >= this->length) {
+      return false;
+    } else {
+      cur.row++;
+      cur.col = 0;
+    }
+  } else {
+    cur.col++;
+  }
+  return true;
+}
+
+template <int C, int R>
+inline constexpr void buffer<C, R>::cursor_scan_word_forward()
+{
+  // copy of this->cursor
+  editor::cursor cur = this->cursor;
+
+  // if we are not inside a word boundary, scan in `dir` direction until we are
+  // inside a word boundary
+  while (!word_boundary(cursor_get(cur))) {
+    if (!cursor_increment(cur)) { scroll_new_cursor(cur); return; }
+  }
+
+  // scan in `dir` direction until we are not inside a word boundary
+  while (word_boundary(cursor_get(cur))) {
+    if (!cursor_increment(cur)) { scroll_new_cursor(cur); return; }
+  }
+
+  scroll_new_cursor(cur);
+}
+
+template <int C, int R>
+inline constexpr bool buffer<C, R>::cursor_decrement(editor::cursor& cur)
+{
+  if (cur.col == 0) {
+    if (cur.row - 1 < 0) {
+      return false;
+    } else {
+      cur.row--;
+      cur.col = this->lines[cur.row]->length;
+    }
+  } else {
+    cur.col--;
+  }
+  return true;
+}
+
+template <int C, int R>
+inline constexpr void buffer<C, R>::cursor_scan_word_backward()
+{
+  // copy of this->cursor
+  editor::cursor cur = this->cursor;
+  cursor_decrement(cur);
+  // if we are not inside a word boundary, scan in `dir` direction until we are
+  // inside a word boundary
+  while (!word_boundary(cursor_get(cur))) {
+    if (!cursor_decrement(cur)) { scroll_new_cursor(cur); return; }
+  }
+
+  // scan in `dir` direction until we are not inside a word boundary
+  while (word_boundary(cursor_get(cur))) {
+    if (!cursor_decrement(cur)) { scroll_new_cursor(cur); return; }
+  }
+
+  cursor_increment(cur);
+  scroll_new_cursor(cur);
 }
 
 template <int C, int R>
@@ -581,13 +672,7 @@ inline constexpr bool buffer<C, R>::mark_delete()
   this->selection_delete(sel);
 
   // move cur to sel.min
-  editor::cursor& cur = this->cursor;
-  const editor::cursor& min = *sel.min;
-  if (min.row < cur.row) { cur.row = min.row; scroll_up();   }
-  else                   { cur.row = min.row; scroll_down(); }
-
-  if (min.col < cur.col) { cur.col = min.col; scroll_right(); }
-  else                   { cur.col = min.col; scroll_left();  }
+  scroll_new_cursor(*sel.min);
 
   return true;
 }
@@ -790,14 +875,8 @@ inline constexpr bool buffer<C, R>::shadow_paste()
     cur.row += last_line_offset;
     scroll_down();
 
-    int32_t new_col = line_length(last_line_src);
-    if (new_col < cur.col) {
-      cur.col = new_col;
-      scroll_right();
-    } else {
-      cur.col = new_col;
-      scroll_left();
-    }
+    int32_t col = line_length(last_line_src);
+    scroll_new_col(col);
   }
 
   return true;
@@ -843,5 +922,26 @@ inline constexpr void buffer<C, R>::scroll_right()
 
   if (this->cursor.col >= this->window.left + this->window.cell_width)
     this->window.left = (this->cursor.col - (this->window.cell_width - 1));
+}
+
+template <int C, int R>
+inline constexpr void buffer<C, R>::scroll_new_cursor(const editor::cursor& oth)
+{
+  editor::cursor& cur = this->cursor;
+
+  if (oth.row < cur.row) { cur.row = oth.row; scroll_up();   }
+  else                   { cur.row = oth.row; scroll_down(); }
+
+  if (oth.col < cur.col) { cur.col = oth.col; scroll_right(); }
+  else                   { cur.col = oth.col; scroll_left();  }
+}
+
+template <int C, int R>
+inline constexpr void buffer<C, R>::scroll_new_col(const int32_t col)
+{
+  editor::cursor& cur = this->cursor;
+
+  if (col < cur.col) { cur.col = col; scroll_right(); }
+  else               { cur.col = col; scroll_left();  }
 }
 }

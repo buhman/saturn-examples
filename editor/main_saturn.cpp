@@ -127,16 +127,16 @@ inline void keyboard_regular_key(const enum keysym k)
   case MODIFIER_RIGHT_CTRL: [[fallthrough]];
   case MODIFIER_BOTH_CTRL:
     switch (k) {
-    case keysym::SPACE : buffer.mark_set(); break;
-    case keysym::G     : buffer.quit(); break;
-    case keysym::B     : buffer.cursor_left(); break;
-    case keysym::F     : buffer.cursor_right(); break;
-    case keysym::P     : buffer.cursor_up(); break;
-    case keysym::N     : buffer.cursor_down(); break;
-    case keysym::A     : buffer.cursor_home(); break;
-    case keysym::E     : buffer.cursor_end(); break;
-    case keysym::Y     : buffer.shadow_paste(); break;
-    case keysym::W     : buffer.shadow_cut(); break;
+    case keysym::SPACE: buffer.mark_set(); break;
+    case keysym::G    : buffer.quit(); break;
+    case keysym::B    : buffer.cursor_left(); break;
+    case keysym::F    : buffer.cursor_right(); break;
+    case keysym::P    : buffer.cursor_up(); break;
+    case keysym::N    : buffer.cursor_down(); break;
+    case keysym::A    : buffer.cursor_home(); break;
+    case keysym::E    : buffer.cursor_end(); break;
+    case keysym::Y    : buffer.shadow_paste(); break;
+    case keysym::W    : buffer.shadow_cut(); break;
     default: break;
     }
     break;
@@ -145,7 +145,11 @@ inline void keyboard_regular_key(const enum keysym k)
   case MODIFIER_RIGHT_ALT: [[fallthrough]];
   case MODIFIER_BOTH_ALT:
     switch (k) {
-    case keysym::W     : buffer.shadow_copy(); break;
+    case keysym::ARROW_LEFT : buffer.cursor_scan_word_backward(); break;
+    case keysym::B          : buffer.cursor_scan_word_backward(); break;
+    case keysym::ARROW_RIGHT: buffer.cursor_scan_word_forward(); break;
+    case keysym::F          : buffer.cursor_scan_word_forward(); break;
+    case keysym::W          : buffer.shadow_copy(); break;
     default: break;
     }
     break;
