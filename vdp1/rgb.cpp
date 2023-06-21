@@ -25,7 +25,6 @@ uint32_t character_pattern_table(const uint32_t top)
   const uint32_t table_address = top - table_size;
   uint16_t * table = &vdp1.vram.u16[(table_address / 2)];
 
-  // `table_size` is in bytes; divide by two to get uint16_t indicies.
   for (int32_t y = 0; y < (int32_t)chikorita.height; y++) {
     for (int32_t x = 0; x < (int32_t)chikorita.width; x++) {
       int32_t pixel_index = (y * chikorita.width + x);
@@ -70,7 +69,7 @@ void main()
   vdp1.reg.FBCR = 0;
 
   // during a framebuffer erase cycle, write the color "black" to each pixel
-  constexpr uint16_t black = 0x0000;
+  const uint16_t black = 0x0000;
   vdp1.reg.EWDR = black;
 
   // the EWLR/EWRR macros use somewhat nontrivial math for the X coordinates
