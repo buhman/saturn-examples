@@ -372,7 +372,7 @@ void main()
   sh2_vec[SCU_VEC__V_BLANK_IN] = (u32)(&v_blank_in_int);
 
   scu.reg.IST = 0;
-  scu.reg.IMS = ~(IMS__SMPC | IMS__V_BLANK_IN);
+  scu.reg.IMS &= ~(IMS__SMPC);
 }
 
 extern "C"

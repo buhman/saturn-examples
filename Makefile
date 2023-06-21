@@ -38,6 +38,8 @@ res/mai.data: res/mai00.data res/mai01.data res/mai02.data res/mai03.data res/ma
 
 vdp1/normal_sprite_animated.elf: vdp1/normal_sprite_animated.o res/mai.data.o res/mai.data.pal.o
 
+vdp1/rgb.elf: vdp1/rgb.o vdp1/chikorita.o
+
 smpc/input_intback.elf: smpc/input_intback.o sh/lib1funcs.o
 
 tools:
