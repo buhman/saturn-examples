@@ -3,7 +3,24 @@ OPT ?= -Og
 LIBGCC = $(shell $(CC) -print-file-name=libgcc.a)
 LIB = ./saturn
 
-all:
+ALL =
+ALL += raytracing/raytracing.cue
+ALL += vdp2/nbg0.cue
+ALL += vdp1/polygon.cue
+ALL += vdp1/normal_sprite.cue
+ALL += vdp1/normal_sprite_color_bank.cue
+ALL += vdp1/kana.cue
+ALL += vdp1/normal_sprite_animated.cue
+ALL += vdp1/rgb.cue
+ALL += smpc/input_intback.cue
+ALL += smpc/input_keyboard.cue
+ALL += wordle/wordle.cue
+ALL += scsp/slot.cue
+ALL += scsp/sound_cpu__slot.cue
+ALL += scsp/sound_cpu__interrupt.cue
+ALL += editor/main_saturn.cue
+
+all: $(ALL)
 
 include $(LIB)/common.mk
 

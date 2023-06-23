@@ -138,12 +138,12 @@ void v_blank_in_int()
 
     smpc.reg.SF = 0;
 
-    smpc.reg.ireg[0] = INTBACK__IREG0__STATUS_DISABLE;
-    smpc.reg.ireg[1] = ( INTBACK__IREG1__PERIPHERAL_DATA_ENABLE
+    smpc.reg.IREG[0].val = INTBACK__IREG0__STATUS_DISABLE;
+    smpc.reg.IREG[1].val = ( INTBACK__IREG1__PERIPHERAL_DATA_ENABLE
                        | INTBACK__IREG1__PORT2_15BYTE
                        | INTBACK__IREG1__PORT1_15BYTE
                        );
-    smpc.reg.ireg[2] = INTBACK__IREG2__MAGIC;
+    smpc.reg.IREG[2].val = INTBACK__IREG2__MAGIC;
 
     smpc.reg.COMREG = COMREG__INTBACK;
   }

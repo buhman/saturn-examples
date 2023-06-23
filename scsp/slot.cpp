@@ -11,7 +11,7 @@ void main()
   while ((smpc.reg.SF & 1) != 0);
   smpc.reg.SF = 1;
   smpc.reg.COMREG = COMREG__SNDON;
-  while (smpc.reg.oreg[31] != 0b00000110);
+  while (smpc.reg.OREG[31].val != 0b00000110);
 
   for (long i = 0; i < 807; i++) { asm volatile ("nop"); }   // wait for (way) more than 30µs
 
@@ -21,8 +21,8 @@ void main()
   copy<uint32_t>(&scsp.ram.u32[0], buf, 44100 * 2);
 
   scsp_slot& slot = scsp.reg.slot[0];
-  slot.LOOP = LOOP__KYONB | LOOP__LPCTL__NORMAL; // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:16]
-  slot.SA = 0; // start address (bytes)
+  // start address (bytes)
+  slot.SA = SA__KYONB | SA__LPCTL__NORMAL | SA__SA(0); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
   slot.LSA = 0; // loop start address (samples)
   slot.LEA = 44100; // loop end address (samples)
   slot.EG = EG__EGHOLD; // d2r d1r ho ar krs dl rr

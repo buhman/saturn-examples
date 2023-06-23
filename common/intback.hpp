@@ -47,7 +47,7 @@ namespace intback {
       - multitaps are not parsed correctly
     */
     while (state.oreg_ix < 32) {
-      reg8 const& oreg = smpc.reg.oreg[state.oreg_ix++];
+      reg8 const& oreg = smpc.reg.OREG[state.oreg_ix++].val;
       switch (state.fsm) {
       case PORT_STATUS:
 	state.port_connected = (PORT_STATUS__CONNECTORS(oreg) == 1);
@@ -97,10 +97,10 @@ namespace intback {
     }
 
     if ((smpc.reg.SR & SR__NPE) != 0) {
-      smpc.reg.ireg[0] = INTBACK__IREG0__CONTINUE;
+      smpc.reg.IREG[0].val = INTBACK__IREG0__CONTINUE;
     } else {
     abort:
-      smpc.reg.ireg[0] = INTBACK__IREG0__BREAK;
+      smpc.reg.IREG[0].val = INTBACK__IREG0__BREAK;
     }
   }
 }

@@ -86,7 +86,7 @@ void init_sound()
   while ((smpc.reg.SF & 1) != 0);
   smpc.reg.SF = 1;
   smpc.reg.COMREG = COMREG__SNDOFF;
-  while (smpc.reg.oreg[31] != OREG31__SNDOFF);
+  while (smpc.reg.OREG[31].val != OREG31__SNDOFF);
 
   scsp.reg.ctrl.MIXER = MIXER__MEM4MB;
 
@@ -106,7 +106,7 @@ void init_sound()
   while ((smpc.reg.SF & 1) != 0);
   smpc.reg.SF = 1;
   smpc.reg.COMREG = COMREG__SNDON;
-  while (smpc.reg.oreg[31] != OREG31__SNDON);
+  while (smpc.reg.OREG[31].val != OREG31__SNDON);
 }
 
 static inline void init_vdp()

@@ -32,8 +32,8 @@ void auto_vector_1(void)
 
   scsp.reg.ctrl.STATUS = STATUS__MSLC(slot_ix & 31);
   scsp_slot& slot = scsp.reg.slot[slot_ix & 31];
-  slot.LOOP = LOOP__KYONB | LOOP__SA(frame_addr); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:16]
-  slot.SA = SA__SA(frame_addr); // start address (bytes)
+  // start address (bytes)
+  slot.SA = SA__KYONB | SA__SA(frame_addr); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
   slot.LSA = 0; // loop start address (samples)
   slot.LEA = frame_size; // loop end address (samples)
   slot.EG = EG__AR(0x1f) | EG__EGHOLD; // d2r d1r ho ar krs dl rr
@@ -59,8 +59,7 @@ void main()
 
   for (int i = 0; i < 32; i++) {
     scsp_slot& slot = scsp.reg.slot[i];
-    slot.LOOP = 0;
-    slot.SA = 0;
+    slot.SA = 0; // 32-bit access
     slot.LSA = 0;
     slot.LEA = 0;
     slot.EG = 0;
