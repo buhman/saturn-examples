@@ -1,5 +1,7 @@
+#pragma once
+
 namespace intback {
-  enum intback_fsm {
+  enum fsm : uint8_t {
     PORT_STATUS = 0,
     PERIPHERAL_ID,
     DATA1,
@@ -9,7 +11,7 @@ namespace intback {
     FSM_NEXT
   };
 
-  struct intback_state {
+  struct state {
     uint8_t fsm;
     uint8_t controller_ix;
     uint8_t port_ix;
@@ -21,11 +23,12 @@ namespace intback {
     uint8_t kbd_bits;
   };
 
-  typedef void (*keyboard_func_ptr)(const enum keysym k, uint8_t kbd_bits);
+  typedef void (*keyboard_func_ptr)(uint8_t keysym, uint8_t kbd_bits);
+  typedef void (*digital_func_ptr)(uint8_t fsm_state, uint8_t data);
 
-  static intback_state state;
+  static struct state state;
   
-  inline void keyboard_fsm(keyboard_func_ptr callback)
+  inline void fsm(digital_func_ptr digital_cb, keyboard_func_ptr keyboard_cb)
   {
     if ((smpc.reg.SR & SR__PDL) != 0) {
       // PDL == 1; 1st peripheral data
@@ -65,18 +68,16 @@ namespace intback {
 	state.data_size = PERIPHERAL_ID__DATA_SIZE(oreg);
 	break;
       case DATA1:
+	if (digital_cb != nullptr) digital_cb(state.fsm, oreg);
 	break;
       case DATA2:
+	if (digital_cb != nullptr) digital_cb(state.fsm, oreg);
 	break;
       case DATA3:
 	state.kbd_bits = oreg & 0b1111;
 	break;
       case DATA4:
-	{
-	  uint32_t keysym = oreg;
-	  enum keysym k = scancode_to_keysym(keysym);
-	  callback(k, state.kbd_bits);
-	}
+	if (keyboard_cb != nullptr) keyboard_cb(state.kbd_bits, oreg);
 	break;
       default:
 	break;

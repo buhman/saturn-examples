@@ -42,8 +42,10 @@ uint32_t xorshift32(struct xorshift32_state *state)
 static xorshift32_state random_state = { 0x12345678 };
 static uint32_t frame_count = 0;
 
-void keyboard_callback(const enum keysym k, uint8_t kbd_bits)
+void keyboard_callback(uint8_t kbd_bits, uint8_t scancode)
 {
+  enum keysym k = scancode_to_keysym(scancode);
+
   if (!KEYBOARD__MAKE(kbd_bits))
     return;
 
@@ -71,7 +73,7 @@ void smpc_int(void)
   scu.reg.IST &= ~(IST__SMPC);
   scu.reg.IMS = ~(IMS__SMPC | IMS__V_BLANK_IN);
 
-  intback::keyboard_fsm(keyboard_callback);
+  intback::fsm(nullptr, keyboard_callback);
 }
 
 // rendering
@@ -140,9 +142,9 @@ void v_blank_in_int()
 
     smpc.reg.IREG[0].val = INTBACK__IREG0__STATUS_DISABLE;
     smpc.reg.IREG[1].val = ( INTBACK__IREG1__PERIPHERAL_DATA_ENABLE
-                       | INTBACK__IREG1__PORT2_15BYTE
-                       | INTBACK__IREG1__PORT1_15BYTE
-                       );
+                           | INTBACK__IREG1__PORT2_15BYTE
+                           | INTBACK__IREG1__PORT1_15BYTE
+                           );
     smpc.reg.IREG[2].val = INTBACK__IREG2__MAGIC;
 
     smpc.reg.COMREG = COMREG__INTBACK;

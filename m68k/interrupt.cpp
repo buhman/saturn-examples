@@ -37,8 +37,7 @@ void auto_vector_1(void)
   slot.LSA = 0; // loop start address (samples)
   slot.LEA = frame_size; // loop end address (samples)
   slot.EG = EG__AR(0x1f) | EG__EGHOLD; // d2r d1r ho ar krs dl rr
-  slot.VOLUME = 0; // stwinh sdir tl
-  slot.FM = 0; // mdl mdxsl mdysl
+  slot.FM = 0; // stwinh sdir tl mdl mdxsl mdysl
   slot.PITCH = PITCH__OCT(-2) | PITCH__FNS(0); // oct fns
   slot.LFO = 0; // lfof plfows
   slot.MIXER = MIXER__DISDL(0b101); // disdl dipan efsdl efpan
@@ -63,8 +62,7 @@ void main()
     slot.LSA = 0;
     slot.LEA = 0;
     slot.EG = 0;
-    slot.VOLUME = 0;
-    slot.FM = 0;
+    slot.FM = 0; // 32-bit access
     slot.PITCH = 0;
     slot.LFO = 0;
     slot.MIXER = 0;

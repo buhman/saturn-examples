@@ -92,14 +92,23 @@ wordle/wordle.o: wordle/word_list.hpp
 
 wordle/wordle.elf: wordle/main_saturn.o wordle/wordle.o wordle/draw.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 
-scsp/sine-44100-s16be-1ch.pcm:
+# 88200 bytes
+scsp/sine-44100-s16be-1ch-1sec.pcm:
 	sox \
 		-r 44100 -e signed-integer -b 16 -c 1 -n -B \
 		$@.raw \
 		synth 1 sin 440 vol -10dB
 	mv $@.raw $@
 
-scsp/slot.elf: scsp/slot.o scsp/sine-44100-s16be-1ch.pcm.o
+# 200 bytes
+scsp/sine-44100-s16be-1ch-100sample.pcm:
+	sox \
+		-r 44100 -e signed-integer -b 16 -c 1 -n -B \
+		$@.raw \
+		synth 100s sin 440 vol -10dB
+	mv $@.raw $@
+
+scsp/slot.elf: scsp/slot.o scsp/sine-44100-s16be-1ch-1sec.pcm.o
 
 m68k:
 
@@ -109,6 +118,8 @@ m68k/%.bin: m68k
 scsp/sound_cpu__slot.elf: scsp/sound_cpu__slot.o m68k/slot.bin.o
 
 scsp/sound_cpu__interrupt.elf: scsp/sound_cpu__interrupt.o m68k/interrupt.bin.o sh/lib1funcs.o res/sperrypc.font.bin.o common/draw_font.o common/palette.o
+
+scsp/fm.elf: scsp/fm.o res/nec.bitmap.bin.o sh/lib1funcs.o saturn/start.o scsp/sine-44100-s16be-1ch-100sample.pcm.o
 
 res/sperrypc.bitmap.bin: tools/ttf-bitmap
 	./tools/ttf-bitmap 20 7f res/Bm437_SperryPC_CGA.otb $@

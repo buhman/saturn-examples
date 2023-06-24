@@ -21,8 +21,7 @@ void main()
   slot.LSA = 0; // loop start address (samples)
   slot.LEA = 44100; // loop end address (samples)
   slot.EG = EG__AR(0x1f) | EG__EGHOLD; // d2r d1r ho ar krs dl rr
-  slot.VOLUME = 0; // stwinh sdir tl
-  slot.FM = 0; // mdl mdxsl mdysl
+  slot.FM = 0; // stwinh sdir tl mdl mdxsl mdysl
   slot.PITCH = PITCH__OCT(0) | PITCH__FNS(0); // oct fns
   slot.LFO = 0; // lfof plfows
   slot.MIXER = MIXER__DISDL(0b101); // disdl dipan efsdl efpan

@@ -12,6 +12,7 @@
 #include "../common/draw_font.hpp"
 #include "../common/palette.hpp"
 #include "../common/vdp2_func.hpp"
+#include "../common/string.hpp"
 
 extern void * _m68k_start __asm("_binary_m68k_interrupt_bin_start");
 extern void * _m68k_size __asm("_binary_m68k_interrupt_bin_size");
@@ -23,27 +24,6 @@ struct draw_state {
 };
 
 static struct draw_state draw_state;
-
-uint32_t print_hex(uint8_t * c, uint32_t len, uint32_t n)
-{
-  uint32_t ret = 0;
-
-  while (len > 0) {
-    uint32_t nib = n & 0xf;
-    n = n >> 4;
-
-    if (nib > 9) {
-      nib += (97 - 10);
-    } else {
-      nib += (48 - 0);
-    }
-
-    c[--len] = nib;
-
-    ret++;
-  }
-  return ret;
-}
 
 int32_t draw_string(const uint8_t * string,
 		    const uint32_t length,
@@ -171,7 +151,7 @@ inline void draw_label(const uint8_t(&label)[size], int32_t advance, int32_t & r
   advance = (advance * 8) << 6;
   advance += draw_string(label, (sizeof (label)) - 1, advance, row);
   uint8_t v[n];
-  print_hex(v, (sizeof (v)), value);
+  string::hex(v, (sizeof (v)), value);
   draw_string(v, (sizeof (v)), advance, row);
 
   row++;  

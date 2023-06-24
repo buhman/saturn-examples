@@ -10,6 +10,7 @@
 #include "../common/draw_font.hpp"
 #include "../common/palette.hpp"
 #include "../common/vdp2_func.hpp"
+#include "../common/string.hpp"
 
 /* begin font */
 
@@ -149,27 +150,6 @@ static xy foo[2] = {
   {200, 100}
 };
 
-uint32_t print_hex(char16_t * c, uint32_t len, uint32_t n)
-{
-  uint32_t ret = 0;
-
-  while (len > 0) {
-    uint32_t nib = n & 0xf;
-    n = n >> 4;
-
-    if (nib > 9) {
-      nib += (97 - 10);
-    } else {
-      nib += (48 - 0);
-    }
-
-    c[--len] = nib;
-
-    ret++;
-  }
-  return ret;
-}
-
 static struct draw_font::state font_state;
 
 static uint32_t global_cmd_ix = 0;
@@ -240,7 +220,7 @@ void smpc_int(void) {
         static int32_t y = 50 << 6;
 
         if (kbd_bits & 0b1000) {
-          print_hex(str_num, 2, keysym);
+	  string::hex(str_num, 2, keysym);
 
           enum keysym k = scancode_to_keysym(keysym);
           int32_t c = keysym_to_char(k, false);
@@ -268,7 +248,7 @@ void smpc_int(void) {
         draw_font::horizontal_string(font_state,
                                      cmd_ix, // modified
                                      &str_num[0],
-                                    2,
+				     2,
                                      qx,
                                      qy);
       }

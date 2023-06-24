@@ -166,8 +166,10 @@ inline void keyboard_regular_key(const enum keysym k)
   }
 }
 
-void keyboard_callback(const enum keysym k, uint8_t kbd_bits)
+void keyboard_callback(uint8_t kbd_bits, uint8_t scancode)
 {
+  enum keysym k = scancode_to_keysym(scancode);
+
   if (KEYBOARD__MAKE(kbd_bits)) {
     switch (k) {
     case keysym::LEFT_SHIFT : modifier_state |= MODIFIER_LEFT_SHIFT; break;
@@ -200,7 +202,7 @@ void smpc_int(void)
   scu.reg.IST &= ~(IST__SMPC);
   scu.reg.IMS = ~(IMS__SMPC | IMS__V_BLANK_IN);
 
-  intback::keyboard_fsm(keyboard_callback);
+  intback::fsm(nullptr, keyboard_callback);
 }
 
 constexpr int32_t plane_a = 2;

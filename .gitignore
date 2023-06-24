@@ -7,6 +7,7 @@
 *.ppm
 *.png
 *.out
+*.pcm
 res/mai.data
 tools/ttf-convert
 tools/ttf-bitmap
