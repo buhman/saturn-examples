@@ -658,6 +658,15 @@ void v_blank_in_int()
 
 void init_slots()
 {
+  /*
+    The Saturn BIOS does not (un)initialize the DSP. Without zeroizing the DSP
+    program, the SCSP DSP appears to have a program that continuously writes to
+    0x30000 through 0x3ffff in sound RAM, which has the effect of destroying any
+    samples stored there.
+  */
+  reg32 * dsp_steps = reinterpret_cast<reg32*>(&(scsp.reg.dsp.STEP[0].MPRO[0]));
+  fill<reg32>(dsp_steps, 0, (sizeof (scsp.reg.dsp.STEP)));
+
   while ((smpc.reg.SF & 1) != 0);
   smpc.reg.SF = 1;
   smpc.reg.COMREG = COMREG__SNDON;
