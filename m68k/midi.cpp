@@ -7,7 +7,8 @@
 #include "../common/copy.hpp"
 
 extern void * _sine_start __asm("_binary_sine_44100_s16be_1ch_100sample_pcm_start");
-extern void * _midi_start __asm("_binary_midi_test_c_major_scale_mid_start");
+//extern void * _midi_start __asm("_binary_midi_test_c_major_scale_mid_start");
+extern void * _midi_start __asm("_binary_f2_mid_start");
 
 uint16_t
 midi_note_to_oct_fns(const int8_t midi_note)
@@ -42,10 +43,10 @@ midi_note_to_oct_fns(const int8_t midi_note)
 // maximum delay of 3258 days
 using fp48_16 = fp<uint64_t, uint64_t, 16>;
 
-constexpr uint8_t tactl = 6; // F/128
-constexpr uint8_t tima = 0xfe;
+constexpr uint8_t tactl = 0; // F/128
+constexpr uint8_t tima = 0x00;
 
-constexpr fp48_16 increment_ms{2902, 32394}; // 2902.494293212890625
+constexpr fp48_16 increment_ms{5804, 64657}; //
 
 struct midi_state {
   uint8_t const * buf;
@@ -143,7 +144,7 @@ int8_t alloc_slot()
   }
   return -1;
 }
-#pragma gcc pop_options
+#pragma GCC pop_options
 
 void free_slot(int8_t i)
 {
@@ -225,9 +226,8 @@ void midi_step()
 	    v.count -= 1;
 	    if (v.count == 0) {
 	      free_slot(v.slot_ix);
-	      v.slot_ix = -1;
-
 	      scsp_slot& slot = scsp.reg.slot[v.slot_ix];
+	      v.slot_ix = -1;
 	      slot.LOOP = 0;
 	      scsp.reg.slot[0].SA |= SA__KYONEX;
 	      kyonex = 1;
