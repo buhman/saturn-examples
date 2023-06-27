@@ -8,6 +8,7 @@
 *.png
 *.out
 *.pcm
+*.su
 res/mai.data
 tools/ttf-convert
 tools/ttf-bitmap

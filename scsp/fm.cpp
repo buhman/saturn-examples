@@ -658,6 +658,15 @@ void v_blank_in_int()
 
 void init_slots()
 {
+  while ((smpc.reg.SF & 1) != 0);
+  smpc.reg.SF = 1;
+  smpc.reg.COMREG = COMREG__SNDOFF;
+  while (smpc.reg.OREG[31].val != OREG31__SNDOFF);
+
+  scsp.reg.ctrl.MIXER = MIXER__MEM4MB | MIXER__MVOL(0);
+
+  for (long i = 0; i < 3200; i++) { asm volatile ("nop"); }   // wait for (way) more than 30µs
+  
   /*
     The Saturn BIOS does not (un)initialize the DSP. Without zeroizing the DSP
     program, the SCSP DSP appears to have a program that continuously writes to
@@ -670,11 +679,9 @@ void init_slots()
   while ((smpc.reg.SF & 1) != 0);
   smpc.reg.SF = 1;
   smpc.reg.COMREG = COMREG__SNDON;
-  while (smpc.reg.OREG[31].val != 0b00000110);
+  while (smpc.reg.OREG[31].val != OREG31__SNDON);
 
-  for (long i = 0; i < 807; i++) { asm volatile ("nop"); }   // wait for (way) more than 30µs
-
-  scsp.reg.ctrl.MIXER = MIXER__MEM4MB | MIXER__MVOL(0);
+  for (long i = 0; i < 3200; i++) { asm volatile ("nop"); }   // wait for (way) more than 30µs
 
   const uint32_t * buf = reinterpret_cast<uint32_t*>(&_sine_start);
   const uint32_t size = reinterpret_cast<uint32_t>(&_sine_size);
@@ -683,12 +690,13 @@ void init_slots()
   for (int i = 0; i < 32; i++) {
     scsp_slot& slot = scsp.reg.slot[i];
     // start address (bytes)
-    slot.SA = SA__KYONB | SA__LPCTL__NORMAL | SA__SA(0); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
+    slot.SA = SA__LPCTL__NORMAL | SA__SA(0); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
     slot.LSA = 0; // loop start address (samples)
     slot.LEA = 100; // loop end address (samples)
-    slot.EG = EG__EGHOLD; // d2r d1r ho ar krs dl rr
+    slot.EG = EG__AR(0x1f) | EG__RR(0x1f); // d2r d1r ho ar krs dl rr
     slot.FM = 0; // stwinh sdir tl mdl mdxsl mdysl
-    slot.PITCH = PITCH__OCT(0) | PITCH__FNS(0); // oct fns
+    //slot.PITCH = PITCH__OCT(-1) | PITCH__FNS(0xc2); // oct fns
+    slot.PITCH = 0x78c2;
     slot.LFO = 0; // lfof plfows
     slot.MIXER = MIXER__DISDL(0b101); // disdl dipan efsdl efpan
   }

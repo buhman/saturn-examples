@@ -24,11 +24,11 @@ int_variable_length(buf_t buf)
   return std::nullopt;
 }
 
-static constexpr inline std::tuple<buf_t, uint16_t>
+static inline std::tuple<buf_t, uint16_t>
 int_fixed_length16(buf_t buf)
 {
   uint16_t n;
-  if constexpr (std::endian::native == std::endian::big) {
+  if (0) {// constexpr (std::endian::native == std::endian::big) {
     n = *reinterpret_cast<const uint16_t*>(buf);
   } else {
     n = (buf[0] << 8 | buf[1] << 0);
@@ -36,11 +36,11 @@ int_fixed_length16(buf_t buf)
   return {buf + (sizeof (uint16_t)), n};
 }
 
-static constexpr inline std::tuple<buf_t, uint32_t>
+static inline std::tuple<buf_t, uint32_t>
 int_fixed_length32(buf_t buf)
 {
   uint32_t n;
-  if constexpr (std::endian::native == std::endian::big) {
+  if (0) {//constexpr (std::endian::native == std::endian::big) {
     n = *reinterpret_cast<const uint32_t*>(buf);
   } else {
     n = (buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3] << 0);
@@ -60,7 +60,7 @@ header_chunk_type(buf_t buf)
     return std::nullopt;
 }
 
-static constexpr inline std::tuple<buf_t, division_t>
+static inline std::tuple<buf_t, division_t>
 division(buf_t buf)
 {
   uint16_t n;

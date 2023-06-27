@@ -10,8 +10,16 @@ struct fp
 {
   T value;
 
+  constexpr inline fp() noexcept
+    : value(0)
+  {}
+
   constexpr inline fp(T n) noexcept
     : value(n * (1 << B))
+  {}
+
+  constexpr inline fp(T n, T d) noexcept
+    : value(n * (1 << B) + d)
   {}
 
   constexpr inline explicit fp(T n, struct fp_raw_tag) noexcept

@@ -2,9 +2,56 @@
 #include <fstream>
 #include <tuple>
 #include <cassert>
+#include <tuple>
 
 #include "parse.hpp"
 #include "strings.hpp"
+
+static uint16_t _cent_to_fns[] = {
+  0x0,
+  0x3d,
+  0x7d,
+  0xc2,
+  0x10a,
+  0x157,
+  0x1a8,
+  0x1fe,
+  0x25a,
+  0x2ba,
+  0x321,
+  0x38d,
+};
+
+constexpr std::tuple<uint16_t, uint16_t>
+midi_note_to_oct_fns(const int32_t midi_note)
+{
+  int32_t a440_note = midi_note - 69;
+  uint16_t oct = (a440_note / 12) & 0xf;
+  uint32_t cent = static_cast<uint32_t>(a440_note) % 12;
+  uint16_t fns = _cent_to_fns[cent];
+  return {oct, fns};
+}
+
+void
+dump_midi(midi::midi_event_t& midi_event)
+{
+  switch (midi_event.type) {
+  case midi::midi_event_t::type_t::note_on:
+    {
+      std::cout << "      note_on " << (int)midi_event.data.note_on.note << '\n';
+      auto&& [oct, fns] = midi_note_to_oct_fns(midi_event.data.note_on.note);
+      std::cout << "      oct " << oct << " fns " << fns << '\n';
+    }
+    break;
+  case midi::midi_event_t::type_t::note_off:
+    {
+      std::cout << "      note_off " << (int)midi_event.data.note_on.note << '\n';
+    }
+    break;
+  default:
+    break;
+  }
+}
 
 int parse(uint8_t const * start)
 {
@@ -56,6 +103,10 @@ int parse(uint8_t const * start)
       switch (mtrk_event.event.type) {
       case midi::event_t::type_t::midi:
 	std::cout << "    midi: " << '\n';
+	
+	  dump_midi(mtrk_event.event.event.midi);
+
+
 	break;
       case midi::event_t::type_t::sysex:
 	std::cout << "    sysex: " << '\n';
@@ -69,8 +120,9 @@ int parse(uint8_t const * start)
     }
 
     assert(buf - track_start == track_length);
+    std::cout << "trailing/unparsed data: " << buf - track_start << '\n';
   }
-  std::cout << "trailing/unparsed data: " << size - (buf - start) << '\n';
+  return 0;
 }
 
 int main(int argc, char *argv[])

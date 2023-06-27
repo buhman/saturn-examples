@@ -108,12 +108,12 @@ scsp/%-44100-s16be-1ch-100sample.pcm:
 		synth 100s $* 440 vol -10dB
 	mv $@.raw $@
 
-scsp/slot.elf: scsp/slot.o scsp/sine-44100-s16be-1ch-1sec.pcm.o
-
 m68k:
 
 m68k/%.bin: m68k
 	$(MAKE) -C m68k $(notdir $@)
+
+scsp/slot.elf: scsp/slot.o scsp/sine-44100-s16be-1ch-1sec.pcm.o
 
 scsp/sound_cpu__slot.elf: scsp/sound_cpu__slot.o m68k/slot.bin.o
 
@@ -121,7 +121,7 @@ scsp/sound_cpu__interrupt.elf: scsp/sound_cpu__interrupt.o m68k/interrupt.bin.o 
 
 scsp/fm.elf: scsp/fm.o res/nec.bitmap.bin.o sh/lib1funcs.o saturn/start.o scsp/sine-44100-s16be-1ch-100sample.pcm.o
 
-scsp/midi.elf: scsp/midi.o res/nec.bitmap.bin.o sh/lib1funcs.o saturn/start.o scsp/sine-44100-s16be-1ch-100sample.pcm.o
+scsp/sound_cpu__midi.elf: scsp/sound_cpu__midi.o m68k/midi.bin.o res/nec.bitmap.bin.o sh/lib1funcs.o saturn/start.o
 
 res/sperrypc.bitmap.bin: tools/ttf-bitmap
 	./tools/ttf-bitmap 20 7f res/Bm437_SperryPC_CGA.otb $@

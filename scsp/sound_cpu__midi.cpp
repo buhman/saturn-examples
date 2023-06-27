@@ -12,8 +12,8 @@
 #include "../common/vdp2_func.hpp"
 #include "../common/string.hpp"
 
-extern void * _sine_start __asm("_binary_scsp_sine_44100_s16be_1ch_100sample_pcm_start");
-extern void * _sine_size __asm("_binary_scsp_sine_44100_s16be_1ch_100sample_pcm_size");
+extern void * _m68k_start __asm("_binary_m68k_midi_bin_start");
+extern void * _m68k_size __asm("_binary_m68k_midi_bin_size");
 
 extern void * _nec_bitmap_start __asm("_binary_res_nec_bitmap_bin_start");
 
@@ -194,13 +194,38 @@ set_char(int32_t x, int32_t y, uint8_t palette, uint8_t c)
     | PATTERN_NAME_TABLE_1WORD__CHARACTER((c - 0x20));
 }
 
+static int render_state = 0;
+
 void render()
 {
+  if (++render_state < 1)
+    return;
+  render_state = 0;
+
   //                 012345678901234
-  uint8_t label[] = "midi";
+  static uint8_t label[] = "midi";
   for (uint32_t i = 0; label[i] != 0; i++) {
     set_char(0 + i, 1, 0, label[i]);
   }
+
+  uint32_t i;
+  uint8_t buf[8];
+  static uint8_t l1[] = "evnt";
+  string::hex(buf, 8, scsp.ram.u32[0]);
+  for (i = 0; i < 4; i++) set_char(0 + i, 3, 0, l1[i]);
+  for (i = 0; i < 8; i++) set_char(5 + i, 3, 0, buf[i]);
+  static uint8_t l2[] = "s_dt";
+  string::hex(buf, 8, scsp.ram.u32[1]);
+  for (i = 0; i < 4; i++) set_char(0 + i, 4, 0, l2[i]);
+  for (i = 0; i < 8; i++) set_char(5 + i, 4, 0, buf[i]);
+  static uint8_t l3[] = "e_dt";
+  string::hex(buf, 8, scsp.ram.u32[2]);
+  for (i = 0; i < 4; i++) set_char(0 + i, 5, 0, l3[i]);
+  for (i = 0; i < 8; i++) set_char(5 + i, 5, 0, buf[i]);
+  static uint8_t l4[] = "note";
+  string::hex(buf, 8, scsp.ram.u32[3]);
+  for (i = 0; i < 4; i++) set_char(0 + i, 6, 0, l4[i]);
+  for (i = 0; i < 8; i++) set_char(5 + i, 6, 0, buf[i]);
 }
 
 void update()
@@ -216,7 +241,7 @@ void v_blank_in_int()
 
   // flip planes;
   vdp2.reg.MPABN0 = MPABN0__N0MPB(0) | MPABN0__N0MPA(plane_a + plane_ix);
-  plane_ix = !plane_ix;
+  //plane_ix = !plane_ix;
 
   // wait at least 300us, as specified in the SMPC manual.
   // It appears reading FRC.H is mandatory and *must* occur before FRC.L on real
@@ -244,7 +269,7 @@ void v_blank_in_int()
   render();
 }
 
-void init_slots()
+void init_snd_cpu()
 {
   /*
     The Saturn BIOS does not (un)initialize the DSP. Without zeroizing the DSP
@@ -255,38 +280,49 @@ void init_slots()
   reg32 * dsp_steps = reinterpret_cast<reg32*>(&(scsp.reg.dsp.STEP[0].MPRO[0]));
   fill<reg32>(dsp_steps, 0, (sizeof (scsp.reg.dsp.STEP)));
 
+  /* SEGA SATURN TECHNICAL BULLETIN # 51
+
+     The document suggests that Sound RAM is (somewhat) preserved
+     during SNDOFF.
+   */
+
+  scsp.reg.ctrl.MIXER = MIXER__MEM4MB;
+
+  while ((smpc.reg.SF & 1) != 0);
+  smpc.reg.SF = 1;
+  smpc.reg.COMREG = COMREG__SNDOFF;
+  while (smpc.reg.OREG[31].val != OREG31__SNDOFF);
+
+  uint32_t * m68k_main_start = reinterpret_cast<uint32_t*>(&_m68k_start);
+  uint32_t m68k_main_size = reinterpret_cast<uint32_t>(&_m68k_size);
+  copy<uint32_t>(&scsp.ram.u32[0], m68k_main_start, m68k_main_size);
+
   while ((smpc.reg.SF & 1) != 0);
   smpc.reg.SF = 1;
   smpc.reg.COMREG = COMREG__SNDON;
-  while (smpc.reg.OREG[31].val != 0b00000110);
-
-  for (long i = 0; i < 807; i++) { asm volatile ("nop"); }   // wait for (way) more than 30µs
-
-  scsp.reg.ctrl.MIXER = MIXER__MEM4MB | MIXER__MVOL(0);
-
-  const uint32_t * buf = reinterpret_cast<uint32_t*>(&_sine_start);
-  const uint32_t size = reinterpret_cast<uint32_t>(&_sine_size);
-  copy<uint32_t>(&scsp.ram.u32[0], buf, size);
+  while (smpc.reg.OREG[31].val != OREG31__SNDON);
 
   for (int i = 0; i < 32; i++) {
+    break;
     scsp_slot& slot = scsp.reg.slot[i];
     // start address (bytes)
-    slot.SA = SA__KYONB | SA__LPCTL__NORMAL | SA__SA(0); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
+    slot.SA = 0; // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
     slot.LSA = 0; // loop start address (samples)
-    slot.LEA = 100; // loop end address (samples)
-    slot.EG = EG__EGHOLD; // d2r d1r ho ar krs dl rr
+    slot.LEA = 0; // loop end address (samples)
+    slot.EG = EG__RR(0x1f); // d2r d1r ho ar krs dl rr
     slot.FM = 0; // stwinh sdir tl mdl mdxsl mdysl
-    slot.PITCH = PITCH__OCT(0) | PITCH__FNS(0); // oct fns
+    slot.PITCH = 0; // oct fns
     slot.LFO = 0; // lfof plfows
-    slot.MIXER = MIXER__DISDL(0b101); // disdl dipan efsdl efpan
+    slot.MIXER = 0; // disdl dipan efsdl efpan
   }
+  //scsp.reg.slot[0].LOOP |= LOOP__KYONEX;
 
   scsp.reg.ctrl.MIXER = MIXER__MEM4MB | MIXER__MVOL(0xf);
 }
 
 void main()
 {
-  init_slots();
+  init_snd_cpu();
 
   v_blank_in();
 
