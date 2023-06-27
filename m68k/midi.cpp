@@ -42,7 +42,7 @@ midi_note_to_oct_fns(const int8_t midi_note)
 // maximum delay of 3258 days
 using fp48_16 = fp<uint64_t, uint64_t, 16>;
 
-constexpr uint8_t tactl = 7; // F/128
+constexpr uint8_t tactl = 6; // F/128
 constexpr uint8_t tima = 0xfe;
 
 constexpr fp48_16 increment_ms{2902, 32394}; // 2902.494293212890625
@@ -122,6 +122,34 @@ void auto_vector_1(void)
   timer_fired = 1;
 }
 
+struct vs {
+  int8_t slot_ix;
+  int8_t count;
+};
+
+static int32_t slot_alloc;
+static struct vs voice_slot[16][128];
+
+#pragma GCC push_options
+#pragma GCC optimize ("unroll-loops")
+int8_t alloc_slot()
+{
+  for (int i = 0; i < 32; i++) {
+    uint32_t bit = (1 << i);
+    if ((slot_alloc & bit) == 0) {
+      slot_alloc |= bit;
+      return i;
+    }
+  }
+  return -1;
+}
+#pragma gcc pop_options
+
+void free_slot(int8_t i)
+{
+  slot_alloc &= ~(1 << i);
+}
+
 void midi_step()
 {
   const uint32_t sine_start = reinterpret_cast<uint32_t>(&_sine_start);
@@ -164,7 +192,13 @@ void midi_step()
 	switch (midi_event.type) {
 	case midi::midi_event_t::type_t::note_on:
 	  {
-	    scsp_slot& slot = scsp.reg.slot[0];
+	    struct vs& v = voice_slot[midi_event.data.note_on.channel][midi_event.data.note_on.note];
+	    if (v.slot_ix == -1) {
+	      v.slot_ix = alloc_slot();
+	    }
+	    v.count++;
+
+	    scsp_slot& slot = scsp.reg.slot[v.slot_ix];
 
 	    scsp.ram.u32[3] = midi_event.data.note_on.note;
 
@@ -179,16 +213,25 @@ void midi_step()
 	    slot.LFO = 0;
 	    slot.MIXER = MIXER__DISDL(0b110);
 
-	    kyonex = 1;
+	    if (v.count == 1)
+	      kyonex = 1;
 	  }
 	  break;
 	case midi::midi_event_t::type_t::note_off:
 	  {
-	    scsp_slot& slot = scsp.reg.slot[0];
-	    slot.LOOP = 0;
-	    scsp.reg.slot[0].SA |= SA__KYONEX;
+	    struct vs& v = voice_slot[midi_event.data.note_on.channel][midi_event.data.note_on.note];
+	    if (v.slot_ix < 0) error();
 
-	    kyonex = 1;
+	    v.count -= 1;
+	    if (v.count == 0) {
+	      free_slot(v.slot_ix);
+	      v.slot_ix = -1;
+
+	      scsp_slot& slot = scsp.reg.slot[v.slot_ix];
+	      slot.LOOP = 0;
+	      scsp.reg.slot[0].SA |= SA__KYONEX;
+	      kyonex = 1;
+	    }
 	  }
 	  break;
 	default:
@@ -227,6 +270,14 @@ void init_midi()
 
   state.delta_time_ms = fp48_16{0};
   state.midi.tempo = 500000; // default tempo
+
+  slot_alloc = 0;
+  for (int j = 0; j < 16; j++) {
+    for (int i = 0; i < 128; i++) {
+      voice_slot[j][i].slot_ix = -1;
+      voice_slot[j][i].count = 0;
+    }
+  }
 }
 
 void main()

@@ -103,10 +103,7 @@ int parse(uint8_t const * start)
       switch (mtrk_event.event.type) {
       case midi::event_t::type_t::midi:
 	std::cout << "    midi: " << '\n';
-	
-	  dump_midi(mtrk_event.event.event.midi);
-
-
+	dump_midi(mtrk_event.event.event.midi);
 	break;
       case midi::event_t::type_t::sysex:
 	std::cout << "    sysex: " << '\n';
@@ -120,7 +117,7 @@ int parse(uint8_t const * start)
     }
 
     assert(buf - track_start == track_length);
-    std::cout << "trailing/unparsed data: " << buf - track_start << '\n';
+    std::cout << "trailing/unparsed data: " << track_length - (buf - track_start) << '\n';
   }
   return 0;
 }

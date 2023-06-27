@@ -383,17 +383,35 @@ def parse_track(buf):
         events.append(event)
     return buf, Track(events)
 
+_slots = set()
+
+def simulate_note(ix, ev):
+    if type(ev.event) is NoteOn:
+        print(repr(ev.event))
+
+        _slots.add((ev.event.channel, ev.event.note))
+        assert len(_slots) <= 32, (hex(ix))
+    if type(ev.event) is NoteOff:
+        print(repr(ev.event))
+        try:
+            _slots.remove((ev.event.channel, ev.event.note))
+        except:
+            print("ix", hex(ix))
+            raise
+
 def parse_file(buf):
     buf, header = parse_header(buf)
-    print(header)
+    #print(header)
     assert header.ntrks > 0
     tracks = []
     for track_num in range(header.ntrks):
         buf, track = parse_track(buf)
         tracks.append(track)
-        print(f"track {track_num}:")
-        for event in track.events:
-            print('   ' + repr(event))
+        #print(f"track {track_num}:")
+        for i, event in enumerate(track.events):
+            #simulate_note(i, event)
+            print(event)
+
     print("remaining data:", len(buf))
 
 import sys
