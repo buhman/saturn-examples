@@ -175,7 +175,7 @@ class ChannelMode:
 
 @dataclass
 class MIDIEvent:
-    event = Union[
+    event: Union[
         NoteOff,
         NoteOn,
         PolyphonicKeyPressure,
@@ -299,9 +299,11 @@ def parse_meta_event(buf):
         return None
     type_n = buf[1]
     type, value_parser = meta_nums[type_n]
+    #print(len(buf[2:]))
     buf, length = parse_variable_length(buf[2:])
+    #print(len(buf[0:]))
     data = buf[:length]
-    print("meta", length, bytes(data))
+    #print("meta", type_n, length, bytes(data))
     buf = buf[length:]
     return buf, MetaEvent(type, value_parser(data))
 
@@ -316,41 +318,46 @@ midi_messages = dict([
     # ChannelMode handled specially
 ])
 
+running_status = None
+
 def parse_midi_event(buf):
-    message_type = buf[0] & 0xf0
+    global running_status
+    if buf[0] & 0x80 == 0:
+        assert running_status is not None, buf[0]
+    else:
+        running_status = buf[0]
+        buf = buf[1:]
+    message_type = running_status & 0xf0
+    channel = running_status & 0x0f
     #assert message_type != 0xf0, hex(message_type)
     if message_type not in midi_messages:
         return None
-    channel = buf[0] & 0x0f
     message_length, cls = midi_messages[message_type]
-    buf = buf[1:]
+
     data = buf[:message_length]
     # handle channel mode specially
     if cls is ControlChange and data[0] >= 121 and data[0] <= 127:
         # 0xb0 is overloaded for both control change and channel mode
         cls = ChannelMode
-    message = cls(channel, *data)
+    message = MIDIEvent(cls(channel, *data))
     buf = buf[message_length:]
     return buf, message
 
 def parse_event(buf):
-    while True:
-        b = buf[0]
-        if (sysex := parse_sysex_event(buf)) is not None:
-            buf, sysex = sysex
-            return buf, sysex
-        elif (meta := parse_meta_event(buf)) is not None:
-            buf, meta = meta
-            return buf, meta
-        elif (midi := parse_midi_event(buf)) is not None:
-            buf, midi = midi
-            return buf, midi
-        else:
-            print(hex(buf[0]), file=sys.stderr)
-            buf = buf[1:]
-            while (buf[0] & 0x80) == 0:
-                print(hex(buf[0]), file=sys.stderr)
-                buf = buf[1:]
+    if (midi := parse_midi_event(buf)) is not None:
+        buf, midi = midi
+        return buf, midi
+    elif (sysex := parse_sysex_event(buf)) is not None:
+        running_status = None
+        buf, sysex = sysex
+        return buf, sysex
+    elif (meta := parse_meta_event(buf)) is not None:
+        running_status = None
+        buf, meta = meta
+        return buf, meta
+    else:
+        assert False, ' '.join([hex(i)[2:] for i in buf[0:40]])
+        return None
 
 @dataclass
 class Event:
@@ -374,48 +381,16 @@ class Track:
     events: list[Event]
 
 def parse_track(buf):
+    head_buf = buf
     buf, _ = parse_track_chunk_type(buf)
     buf, length = parse_uint32(buf)
     offset = len(buf)
     events = []
     while (offset - len(buf)) < length:
-        buf, event = parse_mtrk_event(buf)
+        try:
+            buf, event = parse_mtrk_event(buf)
+        except:
+            print('len', len(head_buf) - len(buf), length)
+            raise
         events.append(event)
     return buf, Track(events)
-
-_slots = set()
-
-def simulate_note(ix, ev):
-    if type(ev.event) is NoteOn:
-        print(repr(ev.event))
-
-        _slots.add((ev.event.channel, ev.event.note))
-        assert len(_slots) <= 32, (hex(ix))
-    if type(ev.event) is NoteOff:
-        print(repr(ev.event))
-        try:
-            _slots.remove((ev.event.channel, ev.event.note))
-        except:
-            print("ix", hex(ix))
-            raise
-
-def parse_file(buf):
-    buf, header = parse_header(buf)
-    #print(header)
-    assert header.ntrks > 0
-    tracks = []
-    for track_num in range(header.ntrks):
-        buf, track = parse_track(buf)
-        tracks.append(track)
-        #print(f"track {track_num}:")
-        for i, event in enumerate(track.events):
-            #simulate_note(i, event)
-            print(event)
-
-    print("remaining data:", len(buf))
-
-import sys
-with open(sys.argv[1], 'rb') as f:
-    b = memoryview(f.read())
-
-parse_file(b)

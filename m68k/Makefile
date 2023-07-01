@@ -12,7 +12,7 @@ include $(LIB)/m68k/common.mk
 	sox \
 		-r 44100 -e signed-integer -b 16 -c 1 -n -B \
 		$@.raw \
-		synth 100s $* 440 vol -10dB
+		synth 101s $* 441 vol -10dB
 	mv $@.raw $@
 
 %.pcm.o: %.pcm

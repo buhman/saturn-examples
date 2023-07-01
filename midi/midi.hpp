@@ -102,6 +102,7 @@ struct midi_event_t {
 struct sysex_event_t {
   const uint8_t * data;
   uint32_t length;
+  uint8_t tag;
 };
 
 struct meta_event_t {
@@ -126,6 +127,10 @@ struct event_t {
 struct mtrk_event_t {
   uint32_t delta_time;
   event_t event;
+};
+
+struct track_t {
+  uint32_t length;
 };
 
 } // midi

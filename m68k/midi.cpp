@@ -7,8 +7,8 @@
 #include "../common/copy.hpp"
 
 extern void * _sine_start __asm("_binary_sine_44100_s16be_1ch_100sample_pcm_start");
-//extern void * _midi_start __asm("_binary_midi_test_c_major_scale_mid_start");
-extern void * _midi_start __asm("_binary_f2_mid_start");
+extern void * _midi_start __asm("_binary_midi_test_c_major_scale_mid_start");
+//extern void * _midi_start __asm("_binary_f2_mid_start");
 
 uint16_t
 midi_note_to_oct_fns(const int8_t midi_note)
@@ -75,7 +75,7 @@ void error()
     // start address (bytes)
     slot.SA = SA__KYONB | SA__LPCTL__NORMAL | SA__SA(sine_start); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
     slot.LSA = 0; // loop start address (samples)
-    slot.LEA = 99; // loop end address (samples)
+    slot.LEA = 100; // loop end address (samples)
     slot.EG = EG__EGHOLD; // d2r d1r ho ar krs dl rr
     slot.FM = 0; // stwinh sdir tl mdl mdxsl mdysl
     //slot.PITCH = PITCH__OCT(0) | PITCH__FNS(0); // oct fns
@@ -89,7 +89,7 @@ void error()
     // start address (bytes)
     slot.SA = SA__KYONB | SA__LPCTL__NORMAL | SA__SA(sine_start); // kx kb sbctl[1:0] ssctl[1:0] lpctl[1:0] 8b sa[19:0]
     slot.LSA = 0; // loop start address (samples)
-    slot.LEA = 99; // loop end address (samples)
+    slot.LEA = 100; // loop end address (samples)
     slot.EG = EG__EGHOLD; // d2r d1r ho ar krs dl rr
     slot.FM = 0; // stwinh sdir tl mdl mdxsl mdysl
     slot.PITCH = PITCH__OCT(1) | PITCH__FNS(0); // oct fns
@@ -133,7 +133,7 @@ static struct vs voice_slot[16][128];
 
 #pragma GCC push_options
 #pragma GCC optimize ("unroll-loops")
-int8_t alloc_slot()
+static inline int8_t alloc_slot()
 {
   for (int i = 0; i < 32; i++) {
     uint32_t bit = (1 << i);
@@ -146,7 +146,7 @@ int8_t alloc_slot()
 }
 #pragma GCC pop_options
 
-void free_slot(int8_t i)
+static inline void free_slot(int8_t i)
 {
   slot_alloc &= ~(1 << i);
 }
@@ -203,16 +203,14 @@ void midi_step()
 
 	    scsp.ram.u32[3] = midi_event.data.note_on.note;
 
-	    //slot.SA = SA__KYONB | SA__LPCTL__NORMAL | SA__SA(sine_start);
-	    slot.LOOP = LOOP__KYONB | LOOP__LPCTL__NORMAL | SAH__SA(sine_start);
-	    slot.SAL = SAL__SA(sine_start);
+	    slot.SA = SA__KYONB | SA__LPCTL__NORMAL | SA__SA(sine_start);
 	    slot.LSA = 0;
-	    slot.LEA = 99;
-	    slot.EG = EG__EGHOLD; //EG__AR(0x0f) | EG__D1R(0x4) | EG__D2R(0x4) | EG__RR(0x1f);
+	    slot.LEA = 100;
+	    slot.EG = EG__AR(0x1f) | EG__D1R(0x0) | EG__D2R(0x0) | EG__RR(0x1f);
 	    slot.FM = 0;
 	    slot.PITCH = midi_note_to_oct_fns(midi_event.data.note_on.note);
 	    slot.LFO = 0;
-	    slot.MIXER = MIXER__DISDL(0b110);
+	    slot.MIXER = MIXER__DISDL(0b101);
 
 	    if (v.count == 1)
 	      kyonex = 1;
@@ -230,7 +228,7 @@ void midi_step()
 	      v.slot_ix = -1;
 	      slot.LOOP = 0;
 	      scsp.reg.slot[0].SA |= SA__KYONEX;
-	      kyonex = 1;
+	      //kyonex = 1;
 	    }
 	  }
 	  break;

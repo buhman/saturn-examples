@@ -67,12 +67,6 @@ int parse(uint8_t const * start)
   std::cout << "header.format: " << midi::strings::header_format(header.format) << '\n';
   std::cout << "header.ntrks: " << header.ntrks << '\n';
 
-  //while header.n
-  // while header.ntrks:
-     //
-     // for event in events:
-     //    ev
-
   for (int32_t i = 0; i < header.ntrks; i++) {
     std::cout << "track[" << i << "]:\n";
 
@@ -132,7 +126,7 @@ int main(int argc, char *argv[])
   std::cerr << argv[1] << '\n';
 
   std::ifstream ifs;
-  ifs.open(argv[1], std::ios::binary | std::ios::ate);
+  ifs.open(argv[1], std::ios::in | std::ios::binary | std::ios::trunc);
   if (!ifs.is_open()) {
     std::cerr << "ifstream\n";
     return -1;
@@ -145,6 +139,7 @@ int main(int argc, char *argv[])
     std::cerr << "read\n";
     return -1;
   }
+  ifs.close();
 
   parse(start);
 
