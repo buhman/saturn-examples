@@ -44,6 +44,7 @@ raytracing/raytracing.elf: raytracing/main-saturn.o raytracing/raytracing.o sh/l
 vdp2/nbg0.elf: vdp2/nbg0.o res/butterfly.data.o res/butterfly.data.pal.o
 
 vdp1/polygon.elf: vdp1/polygon.o
+vdp1/cube.elf: vdp1/cube.o $(LIBGCC)
 vdp1/normal_sprite.elf: vdp1/normal_sprite.o res/mai00.data.o res/mai.data.pal.o
 
 vdp1/normal_sprite_color_bank.elf: vdp1/normal_sprite_color_bank.o res/mai00.data.o res/mai.data.pal.o

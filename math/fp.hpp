@@ -1,32 +1,47 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
+#include <concepts>
+
 #include "div.hpp"
 
 struct fp_raw_tag {};
+
+template <typename T, int B>
+constexpr inline int fp_fractional(std::floating_point auto n)
+{
+  return (n - static_cast<T>(n)) * (1 << B);
+}
+
+template <typename T, int B>
+constexpr inline int fp_integral(std::floating_point auto n)
+{
+  return static_cast<T>(n) << B;
+}
 
 template <typename T, typename I, int B>
 struct fp
 {
   T value;
 
-  constexpr inline fp() noexcept
-    : value(0)
-  {}
-
-  constexpr inline fp(T n) noexcept
+  constexpr inline fp(std::integral auto n)
     : value(n * (1 << B))
   {}
 
-  constexpr inline fp(T n, T d) noexcept
-    : value(n * (1 << B) + d)
+  consteval inline fp(std::floating_point auto n)
+    : value(fp_integral<T, B>(n) + fp_fractional<T, B>(n))
   {}
 
-  constexpr inline explicit fp(T n, struct fp_raw_tag) noexcept
+  constexpr inline explicit fp(T n, struct fp_raw_tag)
     : value(n)
   {}
 
-  constexpr inline fp<T, I, B> operator-() const noexcept
+  constexpr inline explicit operator int() const
+  {
+    return value >> 16;
+  }
+
+  constexpr inline fp<T, I, B> operator-()
   {
     return fp(-value, fp_raw_tag{});
   }
@@ -69,40 +84,40 @@ inline constexpr fp<T, I, B>& fp<T, I, B>::operator*=(fp<T, I, B> const& v)
 }
 
 template <typename T, typename I, int B>
-constexpr inline fp<T, I, B> operator+(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline fp<T, I, B> operator+(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
   return fp<T, I, B>(a.value + b.value, fp_raw_tag{});
 }
 
 template <typename T, typename I, int B>
-constexpr inline fp<T, I, B> operator-(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline fp<T, I, B> operator-(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
   return fp<T, I, B>(a.value - b.value, fp_raw_tag{});
 }
 
 template <typename T, typename I, int B>
-constexpr inline fp<T, I, B> operator*(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline fp<T, I, B> operator*(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
-  I p = (static_cast<I>(a.value) * static_cast<I>(b.value));
+  const I p = (static_cast<I>(a.value) * static_cast<I>(b.value));
   return fp<T, I, B>(static_cast<T>(p >> B), fp_raw_tag{});
 }
 
 template <typename T, typename I, int B>
-constexpr inline fp<T, I, B> operator*(const fp<T, I, B>& a, T b) noexcept
+constexpr inline fp<T, I, B> operator*(const fp<T, I, B>& a, T b)
 {
   I p = (static_cast<I>(a.value) * static_cast<I>(b));
   return fp<T, I, B>(static_cast<T>(p), fp_raw_tag{});
 }
 
 template <typename T, typename I, int B>
-constexpr inline fp<T, I, B> operator*(T b, const fp<T, I, B>& a) noexcept
+constexpr inline fp<T, I, B> operator*(T b, const fp<T, I, B>& a)
 {
   I p = (static_cast<I>(a.value) * static_cast<I>(b));
   return fp<T, I, B>(static_cast<T>(p), fp_raw_tag{});
 }
 
 template <typename T, typename I, int B>
-constexpr inline fp<T, I, B> operator/(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline fp<T, I, B> operator/(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
   //T p = (static_cast<T>(a.value) * ) / static_cast<T>(b.value);
   //T p = static_cast<T>(a.value) / static_cast<T>(b.value);
@@ -114,37 +129,37 @@ constexpr inline fp<T, I, B> operator/(const fp<T, I, B>& a, const fp<T, I, B>& 
 // comparison
 
 template <typename T, typename I, int B>
-constexpr inline bool operator==(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline bool operator==(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
     return a.value == b.value;
 }
 
 template <typename T, typename I, int B>
-constexpr inline bool operator!=(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline bool operator!=(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
     return a.value != b.value;
 }
 
 template <typename T, typename I, int B>
-constexpr inline bool operator<(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline bool operator<(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
     return a.value < b.value;
 }
 
 template <typename T, typename I, int B>
-constexpr inline bool operator>(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline bool operator>(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
     return a.value > b.value;
 }
 
 template <typename T, typename I, int B>
-constexpr inline bool operator<=(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline bool operator<=(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
     return a.value <= b.value;
 }
 
 template <typename T, typename I, int B>
-constexpr inline bool operator>=(const fp<T, I, B>& a, const fp<T, I, B>& b) noexcept
+constexpr inline bool operator>=(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
     return a.value >= b.value;
 }
@@ -157,12 +172,12 @@ struct fp_limits;
 template <typename T, typename I, int B>
 struct fp_limits<fp<T, I, B>>
 {
-  static constexpr fp<T, I, B> min() noexcept
+  static constexpr fp<T, I, B> min()
   {
     return fp<T, I, B>(-(1 << (2 * B - 1)), fp_raw_tag{});
   }
 
-  static constexpr fp<T, I, B> max() noexcept
+  static constexpr fp<T, I, B> max()
   {
     return fp<T, I, B>((static_cast<I>(1) << (2 * B - 1)) - 1, fp_raw_tag{});
   }
@@ -171,7 +186,7 @@ struct fp_limits<fp<T, I, B>>
 // functions
 
 template <typename T, typename I, int B>
-constexpr inline fp<T, I, B> pow(fp<T, I, B> a, fp<T, I, B> b) noexcept
+constexpr inline fp<T, I, B> pow(fp<T, I, B> a, fp<T, I, B> b)
 {
   while (b > fp<T, I, B>(1)) {
     a *= a;
@@ -184,7 +199,7 @@ constexpr inline fp<T, I, B> pow(fp<T, I, B> a, fp<T, I, B> b) noexcept
 
 using fp16_16 = fp<int32_t, int64_t, 16>;
 
-constexpr inline fp16_16 sqrt(const fp16_16& n) noexcept
+constexpr inline fp16_16 sqrt(const fp16_16& n)
 {
   int32_t x = n.value;
   int32_t c = 0;
