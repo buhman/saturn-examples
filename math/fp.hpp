@@ -90,6 +90,18 @@ constexpr inline fp<T, I, B> operator+(const fp<T, I, B>& a, const fp<T, I, B>& 
 }
 
 template <typename T, typename I, int B>
+constexpr inline fp<T, I, B> operator>>(const fp<T, I, B>& a, int s)
+{
+  return fp<T, I, B>(a.value >> s, fp_raw_tag{});
+}
+
+template <typename T, typename I, int B>
+constexpr inline fp<T, I, B> operator<<(const fp<T, I, B>& a, int s)
+{
+  return fp<T, I, B>(a.value << s, fp_raw_tag{});
+}
+
+template <typename T, typename I, int B>
 constexpr inline fp<T, I, B> operator-(const fp<T, I, B>& a, const fp<T, I, B>& b)
 {
   return fp<T, I, B>(a.value - b.value, fp_raw_tag{});
