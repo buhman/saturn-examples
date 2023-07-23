@@ -86,7 +86,6 @@ void main()
   vdp2.reg.CHCTLA = CHCTLA__N0CHCN__16_COLOR
                   | CHCTLA__N0BMEN__CELL_FORMAT
                   | CHCTLA__N0CHSZ__1x1_CELL;
-  /* "Note: In color RAM modes 0 and 2, 2048-color becomes 1024-color" */
 
   /* plane size */
   vdp2.reg.PLSZ = PLSZ__N0PLSZ__1x1;
@@ -108,9 +107,6 @@ void main()
   vdp2.reg.MPABN0 = MPABN0__N0MPB(0) | MPABN0__N0MPA(plane_a); // bits 5~0
   vdp2.reg.MPCDN0 = MPABN0__N0MPD(0) | MPABN0__N0MPC(0); // bits 5~0
 
-  // zeroize character/cell data from 0 up to plane_a_offset
-  fill<uint32_t>(&vdp2.vram.u32[(0 / 4)], 0, plane_a_offset);
-
   uint32_t top = (sizeof (union vdp2_vram));
   palette_data();
   uint32_t kirby_address = top = cell_data(top);
@@ -125,11 +121,4 @@ void main()
   fill<uint32_t>(&vdp2.vram.u32[(plane_a_offset / 2)], pattern_name, plane_size);
 
   // both 1-word and 2-word have identical behavior; 2-word is enabled to reduce/focus suspicion.
-}
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1) {}
 }

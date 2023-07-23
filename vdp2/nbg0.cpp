@@ -156,10 +156,3 @@ void main()
   palette_data();
   cell_data();
 }
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1) {}
-}
