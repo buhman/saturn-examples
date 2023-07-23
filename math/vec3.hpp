@@ -147,3 +147,11 @@ inline constexpr T length(vec<3, T> const& v)
 {
   return sqrt(dot(v, v));
 }
+
+template<typename T>
+inline constexpr vec<3, T> cross(vec<3, T> const& x, vec<3, T> const& y)
+{
+  return vec<3, T>(x.y * y.z - y.y * x.z,
+		   x.z * y.x - y.z * x.x,
+		   x.x * y.y - y.x * x.y);
+}
