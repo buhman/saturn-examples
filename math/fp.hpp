@@ -41,7 +41,7 @@ struct fp
     return value >> 16;
   }
 
-  constexpr inline fp<T, I, B> operator-()
+  constexpr inline fp<T, I, B> operator-() const
   {
     return fp(-value, fp_raw_tag{});
   }
