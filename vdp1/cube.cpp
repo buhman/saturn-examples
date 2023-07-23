@@ -22,15 +22,15 @@ using vec3 = vec<3, fp16_16>;
 using mat4x4 = mat<4, 4, fp16_16>;
 
 static vec4 vertices[8] = {
-  {-0.5, -0.5,  0.5, 1.0}, // top left front
-  { 0.5, -0.5,  0.5, 1.0}, // top right front
-  { 0.5,  0.5,  0.5, 1.0}, // bottom right front
-  {-0.5,  0.5,  0.5, 1.0}, // bottom left front
+  {-1.0, -1.0,  1.0, 1.0}, // top left front
+  { 1.0, -1.0,  1.0, 1.0}, // top right front
+  { 1.0,  1.0,  1.0, 1.0}, // bottom right front
+  {-1.0,  1.0,  1.0, 1.0}, // bottom left front
 
-  {-0.5, -0.5, -0.5, 1.0}, // top left back
-  { 0.5, -0.5, -0.5, 1.0}, // top right back
-  { 0.5,  0.5, -0.5, 1.0}, // bottom right back
-  {-0.5,  0.5, -0.5, 1.0}, // bottom left back
+  {-1.0, -1.0, -1.0, 1.0}, // top left back
+  { 1.0, -1.0, -1.0, 1.0}, // top right back
+  { 1.0,  1.0, -1.0, 1.0}, // bottom right back
+  {-1.0,  1.0, -1.0, 1.0}, // bottom left back
 };
 
 static uint32_t faces[6][4] = {
@@ -47,21 +47,18 @@ struct canvas {
   fp16_16 height;
 };
 
-constexpr struct canvas canvas = { 240, 240 };
+constexpr struct canvas canvas = { 320, 240 };
 
 template <typename T>
 vec<3, T> viewport_to_canvas(T x, T y)
 {
-  return vec<3, T>(x * canvas.width, y * canvas.height, T(1));
+  return vec<3, T>((canvas.width>>1) + x * canvas.height, (canvas.height>>1) - y * canvas.height - T(1), T(1));
 }
 
 template <typename T>
 inline constexpr vec<3, T> project_vertex(vec<4, T> const& v)
 {
-  // / (v.z - T(5))
-  // / (v.z - T(5))
-  return viewport_to_canvas<T>((v.x * T(0.5) + T(2.0/3.0)),
-			       (v.y * T(0.5) + T(0.5)));
+  return viewport_to_canvas<T>((v.x / v.z), (v.y / v.z));
 }
 
 constexpr inline uint16_t rgb15(int32_t r, int32_t g, int32_t b)
@@ -102,29 +99,35 @@ render()
           0, 0,        0, 1,
   };
 
-  const mat4x4 transform = rotationX * rotationY;
+  //const mat4x4 transform = rotationX * rotationY;
 
-  for (int i = 0; i < 6; i++) {
+  vec4 transforms[2] = {
+    {-1.5, 0.0, 7.0, 0.0},
+    {1.25, 2, 7.5, 0.0}
+  };
 
-    const uint32_t * face = faces[i];
+  for (vec4& t : transforms) {
+    for (int i = 0; i < 6; i++) {
 
-    vdp1.vram.cmd[ix].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__POLYLINE;
-    vdp1.vram.cmd[ix].LINK = 0;
-    vdp1.vram.cmd[ix].PMOD = PMOD__ECD | PMOD__SPD;
-    vdp1.vram.cmd[ix].COLR = COLR__RGB | colors[i];
+      const uint32_t * face = faces[i];
 
-    for (int p = 0; p < 4; p++) {
-      const vec4& v0 = vertices[face[p]];
+      vdp1.vram.cmd[ix].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__POLYLINE;
+      vdp1.vram.cmd[ix].LINK = 0;
+      vdp1.vram.cmd[ix].PMOD = PMOD__ECD | PMOD__SPD;
+      vdp1.vram.cmd[ix].COLR = COLR__RGB | colors[i];
 
-      const vec4 v1 = transform * v0;
+      for (int p = 0; p < 4; p++) {
+        const vec4& v0 = vertices[face[p]];
 
-      const vec3& v2 = project_vertex(v1);
+        const vec4& v1 = v0 + t;
 
-      vdp1.vram.cmd[ix].point[p].X = static_cast<int>(v2.x);
-      vdp1.vram.cmd[ix].point[p].Y = static_cast<int>(v2.y);
+        const vec3& v2 = project_vertex(v1);
+
+        vdp1.vram.cmd[ix].point[p].X = static_cast<int>(v2.x);
+        vdp1.vram.cmd[ix].point[p].Y = static_cast<int>(v2.y);
+      }
+      ix++;
     }
-
-    ix++;
   }
 
   vdp1.vram.cmd[ix].CTRL = CTRL__END;
