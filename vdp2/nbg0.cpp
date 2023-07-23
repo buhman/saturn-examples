@@ -10,7 +10,9 @@
 */
 
 #include <stdint.h>
-#include <vdp2.h>
+
+#include "vdp2.h"
+#include "../common/vdp2_func.h"
 
 extern void * _butterfly_data_pal_start __asm("_binary_res_butterfly_data_pal_start");
 extern void * _butterfly_data_pal_size __asm("_binary_res_butterfly_data_pal_size");
@@ -67,6 +69,8 @@ void fill(T * buf, T v, int32_t n) noexcept
 
 void main()
 {
+  v_blank_in();
+
   // DISP: Please make sure to change this bit from 0 to 1 during V blank.
   vdp2.reg.TVMD = ( TVMD__DISP | TVMD__LSMD__NON_INTERLACE
                   | TVMD__VRESO__240 | TVMD__HRESO__NORMAL_320);
