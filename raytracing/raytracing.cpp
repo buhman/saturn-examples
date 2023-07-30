@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "vec.hpp"
+#include "vec3.hpp"
 #include "fp.hpp"
 #include "raytracing.hpp"
 

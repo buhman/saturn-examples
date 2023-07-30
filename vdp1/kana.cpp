@@ -204,10 +204,3 @@ void main()
   // start drawing (execute the command list) on every frame
   vdp1.reg.PTMR = PTMR__PTM__FRAME_CHANGE;
 }
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1) {}
-}

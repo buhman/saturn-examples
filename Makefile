@@ -81,7 +81,7 @@ common/keyboard.hpp: common/keyboard.py
 common/keyboard.cpp: common/keyboard.py common/keyboard.hpp
 	python common/keyboard.py definition > $@
 
-smpc/input_keyboard.o: common/keyboard.hpp
+smpc/input_keyboard.cpp.d: common/keyboard.hpp
 
 smpc/input_keyboard.elf: smpc/input_keyboard.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 
@@ -90,7 +90,7 @@ wordle/main_saturn.o: common/keyboard.hpp
 wordle/word_list.hpp: wordle/word_list.csv wordle/word_list.py
 	python wordle/word_list.py > $@
 
-wordle/wordle.o: wordle/word_list.hpp
+wordle/wordle.cpp.d: wordle/word_list.hpp
 
 wordle/wordle.elf: wordle/main_saturn.o wordle/wordle.o wordle/draw.o sh/lib1funcs.o res/dejavusansmono.font.bin.o common/keyboard.o common/draw_font.o common/palette.o
 

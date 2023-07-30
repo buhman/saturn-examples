@@ -4,7 +4,7 @@
 
 extern void * _jojo_start __asm("_binary_jojo_11025_s16be_1ch_pcm_start");
 
-static volatile int32_t frame = 0x0;
+static int32_t frame = 0x0;
 
 constexpr int32_t tactl = 7;
 constexpr int32_t frame_size = ((1 << tactl) * 256) / (44100 / 11025);

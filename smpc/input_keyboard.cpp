@@ -462,10 +462,3 @@ void main()
   scu.reg.IST = 0;
   scu.reg.IMS = ~(IMS__SMPC | IMS__V_BLANK_IN);
 }
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1);
-}

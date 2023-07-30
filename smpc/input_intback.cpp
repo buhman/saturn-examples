@@ -373,10 +373,3 @@ void main()
   scu.reg.IST = 0;
   scu.reg.IMS &= ~(IMS__SMPC);
 }
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1);
-}

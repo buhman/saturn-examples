@@ -15,6 +15,14 @@ include $(LIB)/m68k/common.mk
 		synth 101s $* 441 vol -10dB
 	mv $@.raw $@
 
+# 88200 bytes
+%-44100-s16be-1ch-1sec.pcm: Makefile
+	sox \
+		-r 44100 -e signed-integer -b 16 -c 1 -n -B \
+		$@.raw \
+		synth 1 sin 440 vol -10dB
+	mv $@.raw $@
+
 %.pcm.o: %.pcm
 	$(BUILD_BINARY_O)
 

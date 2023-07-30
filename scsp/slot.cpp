@@ -33,10 +33,3 @@ void main()
 
   slot.LOOP |= LOOP__KYONEX;
 }
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1);
-}

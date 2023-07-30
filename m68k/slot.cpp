@@ -2,7 +2,7 @@
 
 #include "scsp.h"
 
-extern void * _sine_start __asm("_binary_sine_44100_s16be_1ch_pcm_start");
+extern void * _sine_start __asm("_binary_sine_44100_s16be_1ch_1sec_pcm_start");
 
 void main()
 {

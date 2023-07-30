@@ -4,7 +4,7 @@
 #include "smpc.h"
 #include "sh2.h"
 
-#include "vec.hpp"
+#include "vec3.hpp"
 #include "fp.hpp"
 #include "raytracing.hpp"
 
@@ -22,9 +22,9 @@ inline constexpr T rgb(const vec3& color)
 
   vec3 c = functor1(clamp, color) * fp16_16(channel_mask);
 
-  T red = static_cast<T>(c.r.value >> 16);
-  T green = static_cast<T>(c.g.value >> 16);
-  T blue = static_cast<T>(c.b.value >> 16);
+  T red = static_cast<T>(c.x.value >> 16);
+  T green = static_cast<T>(c.y.value >> 16);
+  T blue = static_cast<T>(c.z.value >> 16);
 
   return (1 << last_bit)
        | (blue  << (P * 2))
@@ -84,7 +84,8 @@ void start_slave()
   */
   sh2_vec[0x94] = (uint32_t)(&slave_main);
 
-  for (volatile int i = 0; i < 10; i++);
+  for (int i = 0; i < 10; i++)
+    asm volatile ("nop");
 
   smpc.reg.SF = 1;
   smpc.reg.COMREG = COMREG__SSHON;
@@ -92,7 +93,7 @@ void start_slave()
   while ((smpc.reg.SF & 0x01) == 1);
 }
 
-void main_asdf()
+void main()
 {
   // DISP: Please make sure to change this bit from 0 to 1 during V blank.
   vdp2.reg.TVMD = ( TVMD__DISP | TVMD__LSMD__NON_INTERLACE
@@ -130,11 +131,4 @@ void main_asdf()
   start_slave();
 
   render(0, put_pixel);
-}
-
-extern "C"
-void start(void)
-{
-  main_asdf();
-  while (1) {}
 }

@@ -43,10 +43,3 @@ void main()
 
   // do nothing while the sound CPU manipulates the SCSP
 }
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1);
-}

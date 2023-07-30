@@ -239,10 +239,3 @@ void main()
 
   init_sound();
 }
-
-extern "C"
-void start(void)
-{
-  main();
-  while (1);
-}
