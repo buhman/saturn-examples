@@ -17,6 +17,7 @@ ALL += wordle/wordle.cue
 ALL += scsp/slot.cue
 ALL += scsp/sound_cpu__slot.cue
 ALL += scsp/sound_cpu__interrupt.cue
+ALL += scsp/sound_cpu__midi_debug.cue
 ALL += editor/main_saturn.cue
 
 all: $(ALL)
@@ -121,6 +122,8 @@ scsp/sound_cpu__slot.elf: scsp/sound_cpu__slot.o m68k/slot.bin.o
 
 scsp/sound_cpu__interrupt.elf: scsp/sound_cpu__interrupt.o m68k/interrupt.bin.o sh/lib1funcs.o res/sperrypc.font.bin.o common/draw_font.o common/palette.o
 
+scsp/sound_cpu__midi_debug.elf: scsp/sound_cpu__midi_debug.o m68k/midi_debug.bin.o sh/lib1funcs.o res/nec.bitmap.bin.o
+
 scsp/fm.elf: scsp/fm.o res/nec.bitmap.bin.o sh/lib1funcs.o saturn/start.o scsp/sine-44100-s16be-1ch-100sample.pcm.o
 
 scsp/sound_cpu__midi.elf: scsp/sound_cpu__midi.o m68k/midi.bin.o res/nec.bitmap.bin.o sh/lib1funcs.o saturn/start.o
@@ -145,7 +148,7 @@ clean-sh:
 		-not -path './saturn/*' \
 		-not -path './tools/*' \
 		-regextype posix-egrep \
-		-regex '.*\.(iso|o|bin|elf|cue)$$' \
+		-regex '.*\.(iso|o|bin|elf|cue|gch)$$' \
 		-exec rm {} \;
 	rm -f \
 		common/keyboard.cpp \
