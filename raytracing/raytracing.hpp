@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fp.hpp"
+#include "../math/fp.hpp"
 #include "raytracing.hpp"
 
 using vec3 = vec<3, fp16_16>;

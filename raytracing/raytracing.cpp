@@ -245,8 +245,6 @@ static vec3 trace_ray
 
 void render(int half, void (&put_pixel) (int32_t x, int32_t y, const vec3& c))
 {
-  using namespace canvas;
-
   vec3 origin = vec3(0, 0, 0);
 
   int x_low = half ? 0 : -(320/2);
@@ -254,7 +252,7 @@ void render(int half, void (&put_pixel) (int32_t x, int32_t y, const vec3& c))
 
   //for (int x = -(width/2); x < (width/2); x++) {
   for (int x = x_low; x < x_high; x++) {
-    for (int y = -(height/2 + 1); y < (height/2 + 1); y++) {
+    for (int y = -(canvas::height/2 + 1); y < (canvas::height/2 + 1); y++) {
       vec3 direction = canvas_to_viewport(x, y);
       vec3 color = trace_ray(origin, direction,
                              fp16_16(1),

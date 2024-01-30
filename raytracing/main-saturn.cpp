@@ -4,8 +4,8 @@
 #include "smpc.h"
 #include "sh2.h"
 
-#include "vec3.hpp"
-#include "fp.hpp"
+#include "../math/vec3.hpp"
+#include "../math/fp.hpp"
 #include "raytracing.hpp"
 
 constexpr inline
