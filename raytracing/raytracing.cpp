@@ -4,18 +4,12 @@
 #include "fp.hpp"
 #include "raytracing.hpp"
 
-namespace viewport {
-  constexpr int width = 1;
-  constexpr int height = 1;
-}
-
-vec3 canvas_to_viewport(int cx, int cy)
+vec3 canvas_to_viewport(const int cx, const int cy)
 {
-  return vec3(
-    fp16_16(((cx * viewport::width) * (1 << 16)) >> canvas::bit_width, fp_raw_tag{}),
-    fp16_16(((cy * viewport::height) * (1 << 16)) >> canvas::bit_height, fp_raw_tag{}),
-    fp16_16(1)
-  );
+  return vec3(fp16_16(cx * viewport::width) / fp16_16(canvas::square_width),
+	      fp16_16(cy * viewport::height) / fp16_16(canvas::square_height),
+	      fp16_16(1)
+	      );
 }
 
 struct sphere {
@@ -53,44 +47,44 @@ constexpr scene scene {
       1,          // radius
       {1, 0, 0},  // color
       8,          // specular
-      fp16_16(65536 * 0.2, fp_raw_tag{}) // reflective
+      fp16_16(0.2) // reflective
     },
     {
       {2, 0, 4},
       1,
       {0, 0, 1},
       10,
-      fp16_16(65536 * 0.3, fp_raw_tag{})
+      fp16_16(0.3)
     },
     {
       {-2, 0, 4},
       fp16_16(1),
       {0, 1, 0},
       10,
-      fp16_16(65536 * 0.4, fp_raw_tag{})
+      fp16_16(0.4)
     },
     {
       {0, -31, 0},
       fp16_16(30),
       {1, 1, 0},
       0,
-      fp16_16(65536 * 0.5, fp_raw_tag{})
+      fp16_16(0.5)
     }
   },
   { // lights
     {
       light_type::ambient, // type
-      fp16_16(65536 * 0.2, fp_raw_tag{}),        // intensity
+      fp16_16(0.2),        // intensity
       {{0, 0, 0}}          //
     },
     {
       light_type::point,   // type
-      fp16_16(65536 * 0.6, fp_raw_tag{}),        // intensity
+      fp16_16(0.6),        // intensity
       {{2, 1, 0}}          // position
     },
     {
       light_type::directional, // type
-      fp16_16(65536 * 0.6, fp_raw_tag{}),        // intensity
+      fp16_16(0.6),        // intensity
       {{1, 4, 4}}          // direction
     }
   }
@@ -179,7 +173,7 @@ fp16_16 compute_lighting(const vec3& point, const vec3& normal,
         t_max = fp_limits<fp16_16>::max();
       }
 
-      constexpr fp16_16 t_min = fp16_16(128, fp_raw_tag{});
+      constexpr fp16_16 t_min = fp16_16(128.f / 65536.f);
       auto [shadow_t, shadow_sphere] = closest_intersection(point, light_vector, t_min, t_max);
       if (shadow_sphere != nullptr)
         continue;
@@ -235,7 +229,7 @@ static vec3 trace_ray
     } else {
       auto reflected_ray = reflect_ray(direction_neg, normal);
       auto reflected_color = trace_ray(point, reflected_ray,
-                                       fp16_16(128, fp_raw_tag{}),
+                                       fp16_16(128.f / 65536.f),
                                        fp_limits<fp16_16>::max(),
                                        recursion_depth - 1);
       return local_color * (fp16_16(1) - reflective) + reflected_color * reflective;
@@ -247,10 +241,9 @@ void render(int half, void (&put_pixel) (int32_t x, int32_t y, const vec3& c))
 {
   vec3 origin = vec3(0, 0, 0);
 
-  int x_low = half ? 0 : -(320/2);
-  int x_high = half ? (320/2) : 0;
+  int x_low = half ? 0 : -(canvas::width/2);
+  int x_high = half ? (canvas::width/2) : 0;
 
-  //for (int x = -(width/2); x < (width/2); x++) {
   for (int x = x_low; x < x_high; x++) {
     for (int y = -(canvas::height/2 + 1); y < (canvas::height/2 + 1); y++) {
       vec3 direction = canvas_to_viewport(x, y);
