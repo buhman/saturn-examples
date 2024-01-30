@@ -415,7 +415,7 @@ void main()
   // It appears Kronos does not correctly calculate the color address in the
   // VDP1 debugger. Kronos will report FFFC when the actual color table address
   // in this example is 7FFE0.
-  vdp1.vram.cmd[2].COLR = COLR__ADDRESS(color_address); // non-palettized (rgb15) color data
+  vdp1.vram.cmd[2].COLR = COLR__LOOKUP_TABLE__ADDRESS(color_address); // non-palettized (rgb15) color data
   vdp1.vram.cmd[2].SRCA = SRCA(character_address[0]);
   vdp1.vram.cmd[2].SIZE = SIZE__X(sprite_stride) | SIZE__Y(sprite_height);
   vdp1.vram.cmd[2].XA = foo[0].x;
@@ -430,7 +430,7 @@ void main()
   // It appears Kronos does not correctly calculate the color address in the
   // VDP1 debugger. Kronos will report FFFC when the actual color table address
   // in this example is 7FFE0.
-  vdp1.vram.cmd[3].COLR = COLR__ADDRESS(color_address); // non-palettized (rgb15) color data
+  vdp1.vram.cmd[3].COLR = COLR__LOOKUP_TABLE__ADDRESS(color_address); // non-palettized (rgb15) color data
   vdp1.vram.cmd[3].SRCA = SRCA(character_address[1]);
   vdp1.vram.cmd[3].SIZE = SIZE__X(sprite_stride) | SIZE__Y(sprite_height);
   vdp1.vram.cmd[3].XA = foo[1].x;
