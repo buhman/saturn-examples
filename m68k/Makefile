@@ -34,3 +34,5 @@ slot.elf: slot.o sine-44100-s16be-1ch-1sec.pcm.o
 interrupt.elf: interrupt.o jojo-11025-s16be-1ch.pcm.o
 
 midi.elf: midi.o sine-44100-s16be-1ch-100sample.pcm.o midi_test-c-major-scale.mid.o f2.mid.o ../midi/parse.o $(LIBGCC)
+
+midi_debug.elf: midi_debug.o
