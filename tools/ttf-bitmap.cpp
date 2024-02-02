@@ -12,7 +12,7 @@ load_bitmap_char(FT_Face face,
 		 FT_ULong char_code,
 		 uint8_t * buf)
 {
-  FT_Error error;  
+  FT_Error error;
   FT_UInt glyph_index = FT_Get_Char_Index(face, char_code);
 
   error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
@@ -25,26 +25,22 @@ load_bitmap_char(FT_Face face,
   //printf("num_grays %d\n", face->glyph->bitmap.num_grays);
   //printf("pitch %d\n", face->glyph->bitmap.pitch);
   //printf("width %d\n", face->glyph->bitmap.width);
-  assert(face->glyph->bitmap.width == 8);
   //printf("char_code %lx rows %d\n", char_code, face->glyph->bitmap.rows);
-  assert((face->glyph->bitmap.rows % 8) == 0);
-  assert(face->glyph->bitmap.width / face->glyph->bitmap.pitch == 8);
-  
+  //assert((face->glyph->bitmap.rows % 8) == 0);
+  //assert(face->glyph->bitmap.width / face->glyph->bitmap.pitch == 8);
+
   for (int y = 0; y < (int)face->glyph->bitmap.rows; y++) {
     uint8_t * row = &face->glyph->bitmap.buffer[y * face->glyph->bitmap.pitch];
     uint8_t row_out = 0;
     for (unsigned int x = 0; x < face->glyph->bitmap.width; x++) {
-      int bit;
-      if (x < face->glyph->bitmap.width) {
-        bit = (row[x / 8] >> (7 - (x % 8))) & 1;
-      } else {
-        bit = 0;
-      }
+      if (x % 8 == 0) row_out = 0;
+      const uint8_t bit = (row[x / 8] >> (7 - (x % 8))) & 1;
       //std::cerr << (bit ? "█" : " ");
       row_out |= (bit << (7 - (x % 8)));
+      if (x % 8 == 7 || x == (face->glyph->bitmap.width - 1))
+        buf[(y * face->glyph->bitmap.pitch) + (x / 8)] = row_out;
     }
-    //std::cerr << '\n';
-    buf[y] = row_out;
+    //std::cerr << "|\n";
   }
 
   // 'pitch' is bytes; 'width' is pixels
@@ -78,7 +74,7 @@ int main(int argc, char *argv[])
   auto end = parse_num<uint32_t>(std::hex, argv[2]);
   auto font_file_path = argv[3];
   auto output_file_path = argv[4];
-  
+
   error = FT_Init_FreeType(&library);
   if (error) {
     std::cerr << "FT_Init_FreeType\n";
@@ -90,7 +86,7 @@ int main(int argc, char *argv[])
     std::cerr << "FT_New_Face\n";
     return -1;
   }
-  
+
   error = FT_Select_Size(face, 0);
   if (error) {
     std::cerr << "FT_Select_Size: " << FT_Error_String(error) << ' ' << error << '\n';

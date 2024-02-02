@@ -666,7 +666,7 @@ void init_slots()
   scsp.reg.ctrl.MIXER = MIXER__MEM4MB | MIXER__MVOL(0);
 
   for (long i = 0; i < 3200; i++) { asm volatile ("nop"); }   // wait for (way) more than 30µs
-  
+
   /*
     The Saturn BIOS does not (un)initialize the DSP. Without zeroizing the DSP
     program, the SCSP DSP appears to have a program that continuously writes to
