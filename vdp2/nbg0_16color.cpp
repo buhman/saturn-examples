@@ -105,7 +105,7 @@ void main()
 
   vdp2.reg.MPOFN = MPOFN__N0MP(0); // bits 8~6
   vdp2.reg.MPABN0 = MPABN0__N0MPB(0) | MPABN0__N0MPA(plane_a); // bits 5~0
-  vdp2.reg.MPCDN0 = MPABN0__N0MPD(0) | MPABN0__N0MPC(0); // bits 5~0
+  vdp2.reg.MPCDN0 = MPCDN0__N0MPD(0) | MPCDN0__N0MPC(0); // bits 5~0
 
   uint32_t top = (sizeof (union vdp2_vram));
   palette_data();
@@ -118,7 +118,7 @@ void main()
 
   /* use 2-word (32-bit) pattern names */
   vdp2.reg.PNCN0 = PNCN0__N0PNB__2WORD;
-  fill<uint32_t>(&vdp2.vram.u32[(plane_a_offset / 2)], pattern_name, plane_size);
+  fill<uint32_t>(&vdp2.vram.u32[(plane_a_offset / 4)], pattern_name, plane_size);
 
   // both 1-word and 2-word have identical behavior; 2-word is enabled to reduce/focus suspicion.
 }

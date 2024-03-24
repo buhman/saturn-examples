@@ -740,7 +740,7 @@ void main()
   */
   vdp2.reg.MPOFN = MPOFN__N0MP(0); // bits 8~6
   vdp2.reg.MPABN0 = MPABN0__N0MPB(0) | MPABN0__N0MPA(plane_a); // bits 5~0
-  vdp2.reg.MPCDN0 = MPABN0__N0MPD(0) | MPABN0__N0MPC(0); // bits 5~0
+  vdp2.reg.MPCDN0 = MPCDN0__N0MPD(0) | MPCDN0__N0MPC(0); // bits 5~0
 
   // zeroize character/cell data from 0 up to plane_a_offset
   fill<uint32_t>(&vdp2.vram.u32[(0 / 4)], 0, plane_offset(plane_a));

@@ -57,7 +57,7 @@ uint32_t character_pattern_table(const uint32_t top)
   // `table_size` is in bytes; divide by two to get uint16_t indicies.
   uint32_t buf_ix = 0;
   for (uint32_t table_ix = 0; table_ix < (table_size / 2); table_ix++) {
-    uint32_t tmp = buf[buf_ix];
+    uint16_t tmp = buf[buf_ix];
 
     table[table_ix] = (((tmp >> 8) & 0xff) << 8)
                     | (((tmp >> 0) & 0xff) << 0);
@@ -72,7 +72,7 @@ void main()
 {
   uint32_t color_address, character_address;
   uint32_t top = (sizeof (union vdp1_vram));
-  uint32_t color_bank = 5; // completely random and arbitrary value
+  uint32_t color_bank = 0; // completely random and arbitrary value
   color_palette(color_bank);
   // For color bank color, COLR is concatenated bitwise with pixel data. See
   // Figure 6.17 in the VDP1 manual.
