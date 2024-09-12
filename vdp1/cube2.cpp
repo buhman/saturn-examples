@@ -45,7 +45,8 @@ consteval vec3 normal(int32_t ix)
   const uint32_t * face = faces[ix];
   vec3 a = vertices[face[1]] - vertices[face[0]];
   vec3 b = vertices[face[3]] - vertices[face[0]];
-  return vertices[face[0]] + cross(a, b);
+  //return vertices[face[0]] + cross(a, b);
+  return cross(a, b);
 }
 
 static constexpr vec3 normals[6] = {
@@ -121,44 +122,38 @@ render()
 
     const uint32_t * face = faces[i];
 
-    const vec3& origin = transform * vertices[face[0]];
-    const vec3& normal = (transform * normals[i]);
-    const vec3& origin_p = project_vertex(origin);
-    const vec3& normal_p = project_vertex(normal);
-    const vec3 camera = {2.0/3.0, 0.5, 100};
-    fp16_16 cull = dot((origin - camera), normal - origin);
+    // rotation
+    const vec3& origin0 = transform * vertices[face[0]];
+    // translation
+    const vec3& origin{origin0.x, origin0.y + fp16_16(1), origin0.z + fp16_16(2)};
 
-    if ((cull.value >> 16) < 0) {
+    const vec3& normal = transform * normals[i];
+    const vec3 camera = {0, 0, 0};
+    fp16_16 cull = dot((camera - origin), normal);
+
+    if (cull.value > 0) {
       vdp1.vram.cmd[ix].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__POLYGON;
       vdp1.vram.cmd[ix].LINK = 0;
       vdp1.vram.cmd[ix].PMOD = PMOD__ECD | PMOD__SPD;
       vdp1.vram.cmd[ix].COLR = COLR__RGB | colors[i];
 
+      // `origin` above is p==0 below; the `origin` calculation could
+      // be reused, though it would hurt readability slightly
       for (int p = 0; p < 4; p++) {
 	const vec3& v0 = vertices[face[p]];
 
+	// rotation
 	const vec3 v1 = transform * v0;
+	// translation
+	const vec3 v2{v1.x, v1.y + fp16_16(1), v1.z + fp16_16(2)};
 
-	const vec3& v2 = project_vertex(v1);
+	const vec3 v3 = project_vertex(v2 / v2.z);
 
-	vdp1.vram.cmd[ix].point[p].X = static_cast<int>(v2.x);
-	vdp1.vram.cmd[ix].point[p].Y = static_cast<int>(v2.y);
+	vdp1.vram.cmd[ix].point[p].X = static_cast<int>(v3.x);
+	vdp1.vram.cmd[ix].point[p].Y = static_cast<int>(v3.y);
       }
 
       ix++;
-
-      /*
-      vdp1.vram.cmd[ix].CTRL = CTRL__JP__JUMP_NEXT | CTRL__COMM__LINE;
-      vdp1.vram.cmd[ix].LINK = 0;
-      vdp1.vram.cmd[ix].PMOD = PMOD__ECD | PMOD__SPD;
-      vdp1.vram.cmd[ix].COLR = COLR__RGB | colors[i];
-      vdp1.vram.cmd[ix].point[0].X = static_cast<int>(origin_p.x);
-      vdp1.vram.cmd[ix].point[0].Y = static_cast<int>(origin_p.y);
-      vdp1.vram.cmd[ix].point[1].X = static_cast<int>(normal_p.x);
-      vdp1.vram.cmd[ix].point[1].Y = static_cast<int>(normal_p.y);
-
-      ix++;
-      */
     }
   }
 
