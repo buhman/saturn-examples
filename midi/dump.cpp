@@ -38,8 +38,8 @@ dump_midi(midi::midi_event_t& midi_event)
   case midi::midi_event_t::type_t::note_on:
     {
       printf("      note_on %d\n", (int)midi_event.data.note_on.note);
-      auto&& [oct, fns] = midi_note_to_oct_fns(midi_event.data.note_on.note);
-      printf("      oct %d fns %d\n", oct, fns);
+      //auto&& [oct, fns] = midi_note_to_oct_fns(midi_event.data.note_on.note);
+      //printf("      oct %d fns %d\n", oct, fns);
     }
     break;
   case midi::midi_event_t::type_t::note_off:
@@ -103,7 +103,16 @@ int parse(uint8_t const * start)
 	printf("    sysex:\n");
 	break;
       case midi::event_t::type_t::meta:
-	printf("    meta: \n");
+	{
+	  printf("    meta:\n");
+	  auto& meta = mtrk_event.event.event.meta;
+	  printf("      type: %d\n", meta.type);
+	  if (meta.type == 1) {
+	    char str[meta.length + 1] = {0};
+	    memcpy(str, meta.data, meta.length);
+	    printf("      data: %s\n", meta.data);
+	  }
+	}
 	break;
       default:
 	assert(false);
