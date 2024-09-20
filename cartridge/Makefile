@@ -8,7 +8,7 @@ CARCH = -m2 -mb
 
 ### general flags ###
 
-OPT ?= -O3
+OPT ?= -O2
 
 DEBUG = -g -gdwarf-4
 
@@ -63,6 +63,12 @@ OBJDUMP = $(TARGET)objdump
 		--rename-section .data=.rom.$(basename $@) \
 		$< $@
 
+%.adpcm.o: %.adpcm
+	$(OBJCOPY) \
+		-I binary -O elf32-sh -B sh2 \
+		--rename-section .data=.rom.$(basename $@) \
+		$< $@
+
 ### object files ###
 
 SYS_IP_OBJ += $(LIB)/ip/sys_id.o
@@ -82,6 +88,10 @@ COMMON_OBJ = start.o runtime.o
 CARTRIDGE_OBJ = main.o wc3.pcm.o
 cartridge.elf: LDSCRIPT = $(LIB)/cartridge.lds
 cartridge.elf: $(SYS_IP_OBJ) $(COMMON_OBJ) $(CARTRIDGE_OBJ)
+
+ADPCM_OBJ = adpcm.o ecclesia.adpcm.o
+adpcm.elf: LDSCRIPT = $(LIB)/cartridge.lds
+adpcm.elf: $(SYS_IP_OBJ) $(COMMON_OBJ) $(ADPCM_OBJ)
 
 .SUFFIXES:
 .INTERMEDIATE:
