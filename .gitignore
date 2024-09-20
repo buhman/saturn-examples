@@ -10,6 +10,7 @@
 *.out
 *.pcm
 *.su
+*.ss
 res/mai.data
 tools/ttf-convert
 tools/ttf-bitmap
