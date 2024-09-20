@@ -280,9 +280,6 @@ void main()
   // both transparency and end codes are enabled, it seems there are only 14
   // usable colors in the 4-bit color mode.
   vdp1.vram.cmd[2].PMOD = PMOD__ECD | PMOD__COLOR_MODE__COLOR_BANK_16;
-  // It appears Kronos does not correctly calculate the color address in the
-  // VDP1 debugger. Kronos will report FFFC when the actual color table address
-  // in this example is 7FFE0.
   vdp1.vram.cmd[2].COLR = COLR__COLOR_BANK__TYPE0__PR(0)
                         | 0;
   vdp1.vram.cmd[2].SRCA = mai_character_address >> 3;
@@ -296,9 +293,6 @@ void main()
   // both transparency and end codes are enabled, it seems there are only 14
   // usable colors in the 4-bit color mode.
   vdp1.vram.cmd[3].PMOD = PMOD__ECD | PMOD__COLOR_MODE__COLOR_BANK_16;
-  // It appears Kronos does not correctly calculate the color address in the
-  // VDP1 debugger. Kronos will report FFFC when the actual color table address
-  // in this example is 7FFE0.
   vdp1.vram.cmd[3].COLR = COLR__COLOR_BANK__TYPE0__PR(1)
                         | 32;
   vdp1.vram.cmd[3].SRCA = haohmaru_character_address >> 3;

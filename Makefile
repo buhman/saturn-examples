@@ -19,6 +19,7 @@ ALL += scsp/sound_cpu__slot.cue
 ALL += scsp/sound_cpu__interrupt.cue
 ALL += scsp/sound_cpu__midi_debug.cue
 ALL += editor/main_saturn.cue
+ALL += cdc/cdc.cue
 
 all: $(ALL)
 
@@ -149,6 +150,8 @@ res/nec_bold.bitmap.bin: tools/ttf-bitmap
 editor/main_saturn.o: common/keyboard.hpp editor/editor.hpp
 
 editor/main_saturn.elf: editor/main_saturn.o res/nec.bitmap.bin.o res/nec_bold.bitmap.bin.o sh/lib1funcs.o common/keyboard.o saturn/start.o
+
+cdc/cdc.elf: cdc/cdc.o saturn/start.o memcpy.o cdc/serial.o
 
 # clean
 clean: clean-sh
