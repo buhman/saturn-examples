@@ -10,7 +10,10 @@
 template <typename T>
 struct vec<3, T>
 {
-  T x, y, z;
+  union {
+    struct { T x, y, z; };
+    struct { T r, g, b; };
+  };
 
   inline constexpr vec();
   inline constexpr vec(T scalar);
@@ -110,6 +113,12 @@ inline constexpr vec<3, T> operator*(vec<3, T> const& v1, T const& scalar)
 }
 
 template <typename T>
+inline constexpr vec<3, T> operator*(T const& scalar, vec<3, T> const& v1)
+{
+  return vec<3, T>(scalar) * v1;
+}
+
+template <typename T>
 inline constexpr vec<3, T> operator/(vec<3, T> const& v1, vec<3, T> const& v2)
 {
   return vec<3, T>(v1.x / v2.x,
@@ -131,6 +140,14 @@ inline constexpr T dot(vec<3, T> const& v1, vec<3, T> const& v2)
 }
 
 template <typename T>
+inline constexpr vec<3, T> cross(vec<3, T> const& v1, vec<3, T> const& v2)
+{
+  return vec<3, T>(v1.y * v2.z - v2.y * v1.z,
+                   v1.z * v2.x - v2.z * v1.x,
+                   v1.x * v2.y - v2.x * v1.y);
+}
+
+template <typename T>
 inline constexpr vec<3, T> functor1(T (&func) (T const& x), vec<3, T> const& v)
 {
   return vec<3, T>(func(v.x), func(v.y), func(v.z));
@@ -143,15 +160,7 @@ inline constexpr vec<3, U> functor1(U (&func) (T const& x), vec<3, T> const& v)
 }
 
 template <typename T>
-inline constexpr T length(vec<3, T> const& v)
+inline constexpr T magnitude(vec<3, T> const& v)
 {
   return sqrt(dot(v, v));
-}
-
-template<typename T>
-inline constexpr vec<3, T> cross(vec<3, T> const& x, vec<3, T> const& y)
-{
-  return vec<3, T>(x.y * y.z - y.y * x.z,
-		   x.z * y.x - y.z * x.x,
-		   x.x * y.y - y.x * x.y);
 }

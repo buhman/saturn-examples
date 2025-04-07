@@ -75,12 +75,34 @@ mat<3, 3, T>::operator[](int i) const
 }
 
 template<typename T>
+inline constexpr mat<3, 3, T> operator+(mat<3, 3, T> const& m1, mat<3, 3, T> const& m2)
+{
+#define c(i, j) ( m1[i][j] + m2[i][j] )
+
+  return mat<3, 3, T>(c(0,0), c(0,1), c(0,2),
+                      c(1,0), c(1,1), c(1,2),
+                      c(2,0), c(2,1), c(2,2));
+#undef c
+}
+
+template<typename T>
 inline constexpr mat<3, 3, T> operator*(mat<3, 3, T> const& m1, mat<3, 3, T> const& m2)
 {
 #define c(i, j) (                               \
     m1[i][0] * m2[0][j]                         \
   + m1[i][1] * m2[1][j]                         \
   + m1[i][2] * m2[2][j] )
+
+  return mat<3, 3, T>(c(0,0), c(0,1), c(0,2),
+                      c(1,0), c(1,1), c(1,2),
+                      c(2,0), c(2,1), c(2,2));
+#undef c
+}
+
+template<typename T>
+inline constexpr mat<3, 3, T> operator*(mat<3, 3, T> const& m1, float s)
+{
+#define c(i, j) ( m1[i][j] * s )
 
   return mat<3, 3, T>(c(0,0), c(0,1), c(0,2),
                       c(1,0), c(1,1), c(1,2),
