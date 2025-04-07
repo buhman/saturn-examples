@@ -1,4 +1,4 @@
-CFLAGS = -Isaturn
+CFLAGS = -Isaturn -I. -D__saturn__
 OPT ?= -O2
 LIB = ./saturn
 
@@ -59,6 +59,8 @@ vdp2/line_color_screen.elf: vdp2/line_color_screen.o $(LIBGCC)
 vdp1/polygon.elf: vdp1/polygon.o
 vdp1/cube.elf: vdp1/cube.o $(LIBGCC)
 vdp1/cube2.elf: vdp1/cube2.o
+vdp1/bear.elf: CFLAGS += -DUSE_SH2_DVSR
+vdp1/bear.elf: vdp1/bear.o $(LIBGCC)
 vdp1/normal_sprite.elf: vdp1/normal_sprite.o res/mai00.data.o res/mai.data.pal.o
 
 vdp1/normal_sprite_color_bank.elf: vdp1/normal_sprite_color_bank.o res/mai00.data.o res/mai.data.pal.o
