@@ -1,5 +1,5 @@
 CFLAGS = -Isaturn
-OPT ?= -Og
+OPT ?= -O2
 LIB = ./saturn
 
 ALL =
@@ -53,6 +53,8 @@ vdp2/nbg0.elf: vdp2/nbg0.o res/butterfly.data.o res/butterfly.data.pal.o
 vdp2/nbg0_16color.elf: vdp2/nbg0_16color.o res/kirby.data.o res/kirby.data.pal.o
 
 vdp2/color_calculation_ratio.elf: vdp2/color_calculation_ratio.o res/mai00.data.o res/mai.data.pal.o res/haohmaru.data.o res/haohmaru.data.pal.o res/forest.data.pal.o res/forest.pattern.o res/forest.tile.o
+
+vdp2/line_color_screen.elf: vdp2/line_color_screen.o $(LIBGCC)
 
 vdp1/polygon.elf: vdp1/polygon.o
 vdp1/cube.elf: vdp1/cube.o $(LIBGCC)
