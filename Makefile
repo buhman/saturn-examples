@@ -40,6 +40,15 @@ include $(LIB)/common.mk
 %.bin.o: %.bin
 	$(BUILD_BINARY_O)
 
+%.bin.h: %.bin
+	$(BUILD_BINARY_H)
+
+%.dsp.o: %.dsp
+	$(BUILD_BINARY_O)
+
+%.dsp.h: %.dsp
+	$(BUILD_BINARY_H)
+
 %.pcm.o: %.pcm
 	$(BUILD_BINARY_O)
 
@@ -163,6 +172,13 @@ editor/main_saturn.o: common/keyboard.hpp editor/editor.hpp
 editor/main_saturn.elf: editor/main_saturn.o res/nec.bitmap.bin.o res/nec_bold.bitmap.bin.o sh/lib1funcs.o common/keyboard.o saturn/start.o
 
 cdc/cdc.elf: cdc/cdc.o saturn/start.o memcpy.o cdc/serial.o
+
+scu-dsp/add.elf: scu-dsp/add.o saturn/start.o cdc/serial.o scu-dsp/input.bin.o
+
+scu-dsp/div10.elf: scu-dsp/div10.o saturn/start.o cdc/serial.o scu-dsp/div10.dsp.o
+
+%.dsp: %.asm
+	~/scu-dsp-asm/scu-dsp-asm $< $@
 
 # clean
 clean: clean-sh
