@@ -14,6 +14,7 @@
 res/mai.data
 tools/ttf-convert
 tools/ttf-bitmap
+tools/ttf_bitmap2
 common/keyboard.cpp
 common/keyboard.hpp
 wordle/word_list.hpp
