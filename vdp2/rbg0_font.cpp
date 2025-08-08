@@ -73,23 +73,56 @@ void main()
   vdp2.reg.MPOFR = MPOFR__RAMP(0); // bits 8~6
   vdp2.reg.MPABRA = MPABRA__RAMPB(plane_a) | MPABRA__RAMPA(plane_a); // bits 5~0
   vdp2.reg.MPCDRA = MPCDRA__RAMPD(plane_a) | MPCDRA__RAMPC(plane_a); // bits 5~0
+  vdp2.reg.MPEFRA = MPEFRA__RAMPF(plane_a) | MPEFRA__RAMPE(plane_a); // bits 5~0
+  vdp2.reg.MPGHRA = MPGHRA__RAMPH(plane_a) | MPGHRA__RAMPG(plane_a); // bits 5~0
+  vdp2.reg.MPIJRA = MPIJRA__RAMPJ(plane_a) | MPIJRA__RAMPI(plane_a); // bits 5~0
+  vdp2.reg.MPKLRA = MPKLRA__RAMPL(plane_a) | MPKLRA__RAMPK(plane_a); // bits 5~0
+  vdp2.reg.MPMNRA = MPMNRA__RAMPN(plane_a) | MPMNRA__RAMPM(plane_a); // bits 5~0
+  vdp2.reg.MPOPRA = MPOPRA__RAMPP(plane_a) | MPOPRA__RAMPO(plane_a); // bits 5~0
 
   vdp2.reg.PNCR = PNCR__R0PNB__2WORD;
 
   vdp2.reg.RPMD = RPMD__ROTATION_PARAMETER_A;
 
-  vdp2.reg.RPRCTL = 0;
+  //vdp2.reg.RPRCTL = 0;
 
   vdp2.reg.KTCTL = 0;
 
   vdp2.reg.KTAOF = 0;
 
-  vdp2.reg.RPTA = 0;
-
-  /* */
+  vdp2.reg.PRIR = 3;
 
   palette_data();
   cell_data();
+
+  volatile struct vdp2_rotation_parameter_table * table = (struct vdp2_rotation_parameter_table *)&vdp2.vram.u32[0x4000 / 4];
+  table->screen_start_coordinate_xst = 0;
+  table->screen_start_coordinate_yst = 0;
+  table->screen_start_coordinate_zst = 0;
+  table->screen_vertical_coordinate_increment_dxst = 0;
+  table->screen_vertical_coordinate_increment_dyst = (1 << 16);
+  table->screen_horizontal_coordinate_increment_dx = (1 << 16);
+  table->screen_horizontal_coordinate_increment_dy = 0;
+  table->rotation_matrix_parameter_a = (-1 << 16);
+  table->rotation_matrix_parameter_b = 0;
+  table->rotation_matrix_parameter_c = 0;
+  table->rotation_matrix_parameter_d = 0;
+  table->rotation_matrix_parameter_e = (1 << 16);
+  table->rotation_matrix_parameter_f = 0;
+  table->viewpoint_coordinate_px = 0;
+  table->viewpoint_coordinate_py = 0;
+  table->viewpoint_coordinate_pz = 0;
+  table->center_point_coordinate_px = 0;
+  table->center_point_coordinate_py = 0;
+  table->center_point_coordinate_pz = 0;
+  table->horizontal_shift_mx = 0;
+  table->horizontal_shift_my = 0;
+  table->scaling_coefficient_kx = (1 << 16);
+  table->scaling_coefficient_ky = (1 << 16);
+
+  vdp2.reg.RPTA = (((uint32_t)table) >> 1) & 0x7ffff;
+
+  /* */
 
   for (int i = 0; i < 64 * 64; i++) {
     vdp2.vram.u32[(plane_a_offset / 4) + i] = ' ' - 0x20;
