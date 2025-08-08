@@ -4,14 +4,14 @@
 
 void serial_char(const char c)
 {
-  while ((sh2.reg.SSR & SSR__TDRE) == 0); // wait for transmit data empty
+  //while ((sh2.reg.SSR & SSR__TDRE) == 0); // wait for transmit data empty
   sh2.reg.TDR = c;
 }
 
 void serial_string(const char * s)
 {
   while (*s) {
-    while ((sh2.reg.SSR & SSR__TDRE) == 0); // wait for transmit data empty
+    //while ((sh2.reg.SSR & SSR__TDRE) == 0); // wait for transmit data empty
     sh2.reg.TDR = *s++;
   }
 }
@@ -19,7 +19,7 @@ void serial_string(const char * s)
 void serial_bytes(const char * s, uint32_t length)
 {
   while (length > 0) {
-    while ((sh2.reg.SSR & SSR__TDRE) == 0); // wait for transmit data empty
+    //while ((sh2.reg.SSR & SSR__TDRE) == 0); // wait for transmit data empty
     sh2.reg.TDR = *s++;
     length -= 1;
   }
