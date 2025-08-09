@@ -11,6 +11,8 @@
 *.pcm
 *.su
 *.ss
+*.dsp
+*.exe
 res/mai.data
 tools/ttf-convert
 tools/ttf-bitmap

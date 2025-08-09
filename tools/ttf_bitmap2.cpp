@@ -8,6 +8,7 @@
 int
 load_bitmap_char(FT_Face face,
 		 FT_ULong char_code,
+                 bool hflip,
 		 uint8_t * buf)
 {
   FT_Error error;
@@ -33,7 +34,10 @@ load_bitmap_char(FT_Face face,
     for (int x = 0; x < (int)face->glyph->bitmap.width; x += 1) {
       const int bit = (row[x / 8] >> (7 - (x % 8))) & 1;
       //std::cerr << (bit ? "█" : " ");
-      buf[y * face->glyph->bitmap.width + x] = bit;
+      if (hflip)
+        buf[y * face->glyph->bitmap.width + (7 - x)] = bit;
+      else
+        buf[y * face->glyph->bitmap.width + x] = bit;
     }
     //std::cerr << "|\n";
   }
@@ -68,7 +72,7 @@ int load_font(FT_Library * library, FT_Face * face, const char * font_file_path)
 
 void usage(const char * argv_0)
 {
-  printf("%s [start-hex] [end-hex] [font-width] [font-height] [font-file-path] [output-file-path]\n", argv_0);
+  printf("%s [start-hex] [end-hex] [font-width] [font-height] [hflip] [font-file-path] [output-file-path]\n", argv_0);
 }
 
 void pack_4bit(const uint8_t * src, int width, int height, int size, uint8_t * dst)
@@ -88,7 +92,7 @@ void pack_4bit(const uint8_t * src, int width, int height, int size, uint8_t * d
 
 int main(int argc, const char * argv[])
 {
-  if (argc != 7) {
+  if (argc != 8) {
     usage(argv[0]);
     return -1;
   }
@@ -105,8 +109,12 @@ int main(int argc, const char * argv[])
   int font_height = strtol(argv[4], &endptr, 10);
   assert(*endptr == 0);
 
-  const char * font_file_path = argv[5];
-  const char * output_file_path = argv[6];
+  int hflip = strtol(argv[5], &endptr, 10);
+  assert(*endptr == 0);
+  assert(hflip == 0 || hflip == 1);
+
+  const char * font_file_path = argv[6];
+  const char * output_file_path = argv[7];
 
   printf("start_hex %x\n", start_hex);
   printf("end_hex %x\n", start_hex);
@@ -132,6 +140,7 @@ int main(int argc, const char * argv[])
 
     res = load_bitmap_char(face,
                            char_code,
+                           hflip,
                            &texture[offset]);
     if (res < 0)
       return - 1;
