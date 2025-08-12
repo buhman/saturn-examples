@@ -14,7 +14,7 @@ base10_loop:
                                    mov 0,ct0
         mvi div10_unsigned,pc
         ;;   [X     ]   [Y     ]   [D1     ]
-                        mov mc0,y   mov 1,lop     ; mvi imm,pc delay slot (executed twice)
+                        mov mc0,y  mov 1,lop     ; mvi imm,pc delay slot (executed twice)
         ;; after function return:
                                    mov all,mc0   ; m0[1] (1234)
                                    mov all,pl    ; ??? why can't this happen in the next instruction?
