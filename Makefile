@@ -1,3 +1,5 @@
+MAKEFILE_PATH := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
+
 CFLAGS = -Isaturn -I. -D__saturn__
 OPT ?= -O2
 LIB = ./saturn
@@ -173,14 +175,8 @@ editor/main_saturn.elf: editor/main_saturn.o res/nec.bitmap.bin.o res/nec_bold.b
 
 cdc/cdc.elf: cdc/cdc.o saturn/start.o memcpy.o cdc/serial.o
 
-scu-dsp/add.elf: scu-dsp/add.o saturn/start.o cdc/serial.o scu-dsp/input.bin.o
-
-scu-dsp/div10.elf: scu-dsp/div10.o saturn/start.o cdc/serial.o scu-dsp/div10.dsp.o
-
-scu-dsp/div10_vdp2.elf: scu-dsp/div10_vdp2.o saturn/start.o cdc/serial.o scu-dsp/div10_vdp2.dsp.o font/hp_100lx_4bit_flip.data.o
-
-%.dsp: %.asm
-	~/scu-dsp-asm/scu-dsp-asm $< $@
+include scu-dsp/scu-dsp.mk
+include scu-dsp/advent/advent.mk
 
 # clean
 clean: clean-sh

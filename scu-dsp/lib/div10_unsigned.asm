@@ -2,9 +2,9 @@
         ;; function: div10_unsigned
         ;;
 
-        ;; argument: ry
-        ;; return: a ← ry / 10
-        ;; maximum ry is somewhere between 2 ^ 21 and 2 ^ 22
+        ;; argument: y
+        ;; return: a ← y / 10
+        ;; maximum y is somewhere between 2 ^ 21 and 2 ^ 22
 div10_unsigned:
         ;; 1 / 10 * (2 ^ 24) ~= 1677722 = 0x19999a
         mvi 1677722,rx
@@ -29,6 +29,6 @@ div10_unsigned:
         ;; mask 24 bit result
         mvi 0xffffff,pl
 
-        ;; return to caller ; reset ct0
+        ;; return to caller; reset caller's ct2
         btm
-        and             mov alu,a  mov 0,ct0
+        and             mov alu,a  mov 0,ct2

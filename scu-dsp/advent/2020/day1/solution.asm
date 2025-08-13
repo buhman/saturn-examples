@@ -46,7 +46,7 @@ loop_inner:
 
         btm
         ;; increment ct1 (A discarded)
-             mov mc1,a                                    ; (delay slot)
+                          mov mc1,a                        ; (delay slot)
 
         ;; increment ct0 (A discarded)
                           mov mc0,a
@@ -60,11 +60,15 @@ loop_exit_test:
                                        mov all,lop        ; (delay slot)
 
 not_found:
-        jmp end
-        clr a                                             ; (delay slot)
+        jmp return
+                          clr a                           ; (delay slot)
 found:
         ;;   [X       ]   [Y            ]   [D1             ]
              mov m1,x     mov m0,y  clr a
              mov mul,p
         add               mov alu,a                       ; (delay slot)
-end:
+return:
+        ;;mov 0,ct0
+        ;;mov all,mc0
+        ;;endi
+        ;;nop
