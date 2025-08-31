@@ -66,6 +66,10 @@ vdp2/nbg0.elf: vdp2/nbg0.o res/butterfly.data.o res/butterfly.data.pal.o
 
 vdp2/nbg0_16color.elf: vdp2/nbg0_16color.o res/kirby.data.o res/kirby.data.pal.o
 
+vdp2/nbg0_aseprite.elf: vdp2/nbg0_aseprite.o aseprite/palette.bin.o aseprite/character_patterns.bin.o aseprite/pattern_name_table.bin.o
+
+vdp2/nbg0_aseprite_rustboro.elf: vdp2/nbg0_aseprite_rustboro.o aseprite/rustboro/character_pattern__tileset_0.bin.o aseprite/rustboro/character_pattern__tileset_1.bin.o aseprite/rustboro/palette.bin.o aseprite/rustboro/pattern_name_table__layer_0.bin.o aseprite/rustboro/pattern_name_table__layer_1.bin.o
+
 vdp2/nbg0_font.elf: vdp2/nbg0_font.o saturn/start.o font/hp_100lx_4bit.data.o
 
 vdp2/rbg0_font.elf: vdp2/rbg0_font.o saturn/start.o font/hp_100lx_4bit.data.o
