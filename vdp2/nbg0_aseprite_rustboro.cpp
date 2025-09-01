@@ -64,7 +64,7 @@ void pattern_name_table_data(const buf_size_t * buf_size,
   for (uint32_t i = 0; i < buf_size->size / 4; i++) {
     uint32_t data = buf_size->buf[i];
     uint32_t character_number = (data & 0x7fff) * 8 + character_offset;
-    uint32_t flags = data & 0xffff0000;
+    uint32_t flags = data & 0xf0000000;
     vdp2.vram.u32[(vram_offset / 4) + i] = flags | character_number;
   }
 }
