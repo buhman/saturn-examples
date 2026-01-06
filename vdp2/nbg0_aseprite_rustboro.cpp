@@ -9,6 +9,8 @@
 #include "aseprite/rustboro/pattern_name_table__layer_0.bin.h"
 #include "aseprite/rustboro/pattern_name_table__layer_1.bin.h"
 
+#define PNB_2WORD
+
 void palette_data()
 {
   const uint16_t * buf = reinterpret_cast<uint16_t *>(&_binary_aseprite_rustboro_palette_bin_start);
@@ -57,15 +59,29 @@ const buf_size_t pattern_name_tables[] = {
   },
 };
 
-void pattern_name_table_data(const buf_size_t * buf_size,
-                             const uint32_t vram_offset,
-                             const uint32_t character_offset)
+void pattern_name_table_data_2word(const buf_size_t * buf_size,
+                                   const uint32_t vram_offset,
+                                   const uint32_t character_offset)
 {
   for (uint32_t i = 0; i < buf_size->size / 4; i++) {
-    uint32_t data = buf_size->buf[i];
-    uint32_t character_number = (data & 0x7fff) * 8 + character_offset;
+    uint32_t data = ((uint32_t *)buf_size->buf)[i];
+    uint32_t character_number = (data & 0x7fff) + character_offset;
     uint32_t flags = data & 0xf0000000;
     vdp2.vram.u32[(vram_offset / 4) + i] = flags | character_number;
+  }
+}
+
+void pattern_name_table_data_1word(const buf_size_t * buf_size,
+                                   const uint32_t vram_offset,
+                                   const uint32_t character_offset)
+{
+  for (uint32_t i = 0; i < buf_size->size / 2; i++) {
+    uint32_t data = ((uint16_t *)buf_size->buf)[i];
+    //uint32_t character_number = (data & 0x3ff) + (character_offset >> 2);
+    uint32_t character_number = (data & 0x3ff) + character_offset;
+    character_number = character_number & 0x3ff;
+    uint32_t flags = data & (0b11 << 10);
+    vdp2.vram.u16[(vram_offset / 2) + i] = flags | character_number;
   }
 }
 
@@ -107,10 +123,7 @@ void main()
      2-word: value of bit 5-0 * 0x4000
   */
   constexpr int plane_a = 0;
-  constexpr int plane_a_offset = plane_a * 0x1000;
-
   constexpr int plane_b = 4;
-  constexpr int plane_b_offset = plane_b * 0x1000;
 
 // Enable VRAM bank partitioning
   vdp2.reg.RAMCTL = RAMCTL__VRAMD | RAMCTL__VRBMD;
@@ -119,11 +132,9 @@ void main()
 
   vdp2.reg.MPABN0 = MPABN0__N0MPB(plane_a) | MPABN0__N0MPA(plane_a); // bits 5~0
   vdp2.reg.MPCDN0 = MPCDN0__N0MPD(plane_a) | MPCDN0__N0MPC(plane_a); // bits 5~0
-  vdp2.reg.PNCN0 = PNCN0__N0PNB__2WORD;
 
   vdp2.reg.MPABN1 = MPABN1__N1MPB(plane_b) | MPABN1__N1MPA(plane_b); // bits 5~0
   vdp2.reg.MPCDN1 = MPCDN1__N1MPD(plane_b) | MPCDN1__N1MPC(plane_b); // bits 5~0
-  vdp2.reg.PNCN1 = PNCN1__N1PNB__2WORD;
 
   // cpu access
   vdp2.reg.CYCA0 = 0xeeeeeeee;
@@ -140,13 +151,47 @@ void main()
   top = character_pattern_data(&character_patterns[1], top);
   uint32_t pattern_base_1 = top / 32;
 
-  pattern_name_table_data(&pattern_name_tables[0],
-                          plane_a_offset,
-                          pattern_base_0);
+#ifdef PNB_2WORD
+  // 2x2 cell
+  constexpr int plane_a_offset = plane_a * (0x4000 >> 2);
+  constexpr int plane_b_offset = plane_b * (0x4000 >> 2);
 
-  pattern_name_table_data(&pattern_name_tables[1],
-                          plane_b_offset,
-                          pattern_base_1);
+  // 1x1 cell
+  //constexpr int plane_a_offset = plane_a * (0x10000 >> 2);
+  //constexpr int plane_b_offset = plane_b * (0x10000 >> 2);
+
+  vdp2.reg.PNCN0 = PNCN0__N0PNB__2WORD;
+  vdp2.reg.PNCN1 = PNCN1__N1PNB__2WORD;
+
+  pattern_name_table_data_2word(&pattern_name_tables[0],
+                                plane_a_offset,
+                                pattern_base_0);
+
+  pattern_name_table_data_2word(&pattern_name_tables[1],
+                                plane_b_offset,
+                                pattern_base_1);
+#else
+  // 2x2 cell
+  //constexpr int plane_a_offset = plane_a * (0x2000 >> 2);
+  //constexpr int plane_b_offset = plane_b * (0x2000 >> 2);
+
+  // 1x1 cell
+  constexpr int plane_a_offset = plane_a * (0x8000 >> 2);
+  constexpr int plane_b_offset = plane_b * (0x8000 >> 2);
+
+  //vdp2.reg.PNCN0 = PNCN0__N0PNB__1WORD | PNCN0__N0SCN(((pattern_base_0 >> 12) & 0b111) << 2);
+  //vdp2.reg.PNCN1 = PNCN1__N1PNB__1WORD | PNCN1__N1SCN(((pattern_base_1 >> 12) & 0b111) << 2);
+  vdp2.reg.PNCN0 = PNCN0__N0PNB__1WORD | PNCN0__N0SCN(((pattern_base_0 >> 10) & 0b11111) << 0);
+  vdp2.reg.PNCN1 = PNCN1__N1PNB__1WORD | PNCN1__N1SCN(((pattern_base_1 >> 10) & 0b11111) << 0);
+
+  pattern_name_table_data_1word(&pattern_name_tables[0],
+                                plane_a_offset,
+                                pattern_base_0);
+
+  pattern_name_table_data_1word(&pattern_name_tables[1],
+                                plane_b_offset,
+                                pattern_base_1);
+#endif
 
   int sx = 0;
   int sy = 0;
